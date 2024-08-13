@@ -4,10 +4,13 @@ from asyncio import Task
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-import redis.asyncio as redis
+import witch_doctor
 from websockets import WebSocketServerProtocol
+from websockets.frames import CloseCode
 
+from xraptor.core.interfaces import Antenna
 from xraptor.domain.request import Request
+from xraptor.domain.response import Response
 
 
 @dataclass(slots=True, frozen=True)
@@ -31,7 +34,11 @@ class Connection:
 
     def register_response_receiver(self, request: Request):
         self.response_receiver.update(
-            {request.request_id: asyncio.create_task(self.antenna(request.request_id))}
+            {
+                request.request_id: asyncio.create_task(
+                    self.antenna(request=request)
+                ),
+            }
         )
 
     def unregister_response_receiver(self, request: Request):
@@ -40,22 +47,25 @@ class Connection:
             _task.cancel()
             del self.response_receiver[request.request_id]
 
-    def unregister_all(self):
+    def _unregister_all(self):
         _r = [*self.response_receiver]
         for request_id in _r:
             if _task := self.response_receiver.get(request_id):
                 _task.cancel()
                 del self.response_receiver[request_id]
 
-    async def antenna(self, request_id: str):
-        redis_client = redis.Redis(host="raspb.local", port=6379, db=0)
-        pubsub = redis_client.pubsub()
-        await pubsub.subscribe(request_id)
-        async for message in pubsub.listen():
-            if message['type'] == "message":
-                _data = json.loads(message["data"])
-                _m = {
-                    "payload": _data,
-                    "request_id": request_id
-                }
-                await self.ws.send(json.dumps(_m).encode())
+    @witch_doctor.WitchDoctor.injection
+    async def antenna(self, request: Request, antenna: Antenna):
+        async for data in antenna.subscribe(request.request_id):
+            if isinstance(data, bytes):
+                data = data.decode()
+            _response = Response.from_message(
+                request_id=request.request_id,
+                header={},
+                payload=data
+            )
+            await self.ws.send(_response.json())
+
+    async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
+        self._unregister_all()
+        await self.ws.close(close_code)

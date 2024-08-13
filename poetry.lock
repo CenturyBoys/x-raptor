@@ -4,7 +4,7 @@
 name = "async-timeout"
 version = "4.0.3"
 description = "Timeout context manager for asyncio programs"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "async-timeout-4.0.3.tar.gz", hash = "sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f"},
@@ -12,21 +12,35 @@ files = [
 ]
 
 [[package]]
-name = "meeseeks-singleton"
-version = "0.4.4"
-description = "A Singleton python project"
+name = "python-decouple"
+version = "3.8"
+description = "Strict separation of settings from code."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = "*"
 files = [
-    {file = "meeseeks_singleton-0.4.4-py3-none-any.whl", hash = "sha256:e1ade489e9b9a76e9cc8a1e958d6749694bf35a71a0a273099b05c8579b301d4"},
-    {file = "meeseeks_singleton-0.4.4.tar.gz", hash = "sha256:d4683360f419abb22f4be1cbd1ae8a282e07304ee1ed61a85c844faf155153c6"},
+    {file = "python-decouple-3.8.tar.gz", hash = "sha256:ba6e2657d4f376ecc46f77a3a615e058d93ba5e465c01bbe57289bfb7cce680f"},
+    {file = "python_decouple-3.8-py3-none-any.whl", hash = "sha256:d0d45340815b25f4de59c974b855bb38d03151d81b037d9e3f463b0c9f8cbd66"},
 ]
+
+[[package]]
+name = "python-ulid"
+version = "2.7.0"
+description = "Universally unique lexicographically sortable identifier"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "python_ulid-2.7.0-py3-none-any.whl", hash = "sha256:c81658e382f69bad8c6d365155c4ae21843ae4226b94f72c12d7adcbb545a251"},
+    {file = "python_ulid-2.7.0.tar.gz", hash = "sha256:18eb595885140851a490a95b0da4447911ff69fa9f434732067b97f6956f9fe9"},
+]
+
+[package.extras]
+pydantic = ["pydantic (>=2.0)"]
 
 [[package]]
 name = "redis"
 version = "5.0.8"
 description = "Python client for Redis database and key-value store"
-optional = false
+optional = true
 python-versions = ">=3.7"
 files = [
     {file = "redis-5.0.8-py3-none-any.whl", hash = "sha256:56134ee08ea909106090934adc36f65c9bcbbaecea5b21ba704ba6fb561f8eb4"},
@@ -121,7 +135,21 @@ files = [
     {file = "websockets-12.0.tar.gz", hash = "sha256:81df9cbcbb6c260de1e007e58c011bfebe2dafc8435107b0537f393dd38c8b1b"},
 ]
 
+[[package]]
+name = "witch-doctor"
+version = "1.2.0"
+description = "Dependency injection for python"
+optional = false
+python-versions = "<4.0,>=3.10"
+files = [
+    {file = "witch_doctor-1.2.0-py3-none-any.whl", hash = "sha256:8f2af5882fc25b7c15aa290da689686cc7b7839de71e7f5718e1b6b9f389800f"},
+    {file = "witch_doctor-1.2.0.tar.gz", hash = "sha256:552302cdacc60b9321fd70c2e5af33956c1ea8f85ae2c970e4f204b910487b24"},
+]
+
+[extras]
+redis-edition = ["redis"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "35d852d36df5282abb14f4add80badcf69be2969835b8f568a714e0da3d379f5"
+content-hash = "6e4ab45111a792609818e352ce64565dfa34202ec6214bef6f7e2a07766cc56b"
