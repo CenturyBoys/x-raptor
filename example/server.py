@@ -6,9 +6,9 @@ from dataclasses import dataclass, field
 import meeseeks
 from redis.asyncio import Redis
 
-from xraptor import XRaptor
+import xraptor
 
-_xraptor = XRaptor("localhost", 8765)
+_xraptor = xraptor.XRaptor("localhost", 8765)
 
 
 @meeseeks.OnlyOne(by_args_hash=True)
@@ -66,49 +66,48 @@ class ChatRoom:
 
 
 @_xraptor.register("/chat_messages").as_sub
-async def register_on_chat_room(payload: bytes, publish_id: str):
-    data = json.loads(payload)
+async def register_on_chat_room(request: xraptor.Request) -> None:
+    data = json.loads(request.payload)
     _chat_id = data["chat_id"]
     chat_room = ChatRoom(_chat_id)
-    chat_room.add_member(publish_id)
+    chat_room.add_member(request.request_id)
 
 
 @_xraptor.register("/chat_messages").as_unsub
-async def unregister_on_chat_room(payload: bytes, publish_id: str):
-    data = json.loads(payload)
+async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
+    data = json.loads(request.payload)
     _chat_id = data["chat_id"]
     chat_room = ChatRoom(_chat_id)
-    chat_room.remove_member(publish_id)
-    return '{"message": "tchau!"}'
+    chat_room.remove_member(request.request_id)
+    return xraptor.Response(
+        request_id=request.request_id,
+        header={},
+        payload='{"message": "tchau!"}'
+    )
 
 
 @_xraptor.register("/send_message_to_chat_room").as_post
-async def send_message_to_chat_room(
-    payload: bytes,
-):
-    data = json.loads(payload)
-    _chat_id = data["chat_id"]
+async def send_message(
+        request: xraptor.Request
+) -> xraptor.Response:
     _redis = Redis(host="raspb.local", port=6379, db=0)
+    data = json.loads(request.payload)
     _msg = {
         "origin": data["client_id"],
         "message": data["message"],
     }
-    await _redis.publish(_chat_id, json.dumps(_msg))
+    await _redis.publish(data["chat_id"], json.dumps(_msg))
     await _redis.aclose()
-    return '{"message": "Message sent"}'
+    return xraptor.Response(
+        request_id=request.request_id,
+        header={},
+        payload='{"message": "Message sent"}'
+    )
 
 
 async def main():
     await _xraptor.load_routes().serve()
 
 
-async def xxx():
-    pubsub = Redis(host="raspb.local", port=6379, db=0).pubsub()
-    await pubsub.subscribe("6465a666-0085-404e-9e53-9d05929aa448")
-    async for message in pubsub.listen():
-        print(message)
-
-
 if __name__ == "__main__":
-    # asyncio.run(xxx())
     asyncio.run(main())

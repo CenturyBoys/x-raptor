@@ -1,5 +1,5 @@
 import asyncio
-from typing import Self, Callable, Coroutine, Type
+from typing import Self, Callable, Type, Awaitable
 
 import witch_doctor
 from websockets import serve
@@ -7,6 +7,7 @@ from websockets import serve
 from xraptor import antenna_implementations as antennas
 from xraptor.core.interfaces import Antenna
 from xraptor.domain.methods import MethodType
+from xraptor.domain.response import Response
 from xraptor.domain.route import Route
 from xraptor.handler import Handler
 
@@ -55,6 +56,6 @@ class XRaptor:
     @classmethod
     def route_matcher(
             cls, method: MethodType, name: str
-    ) -> Callable[..., Coroutine] | None:
+    ) -> Callable[..., Awaitable[Response | None]] | None:
         key = f"{name}:{method.value}"
         return cls._map.get(key)

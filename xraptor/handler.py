@@ -46,25 +46,27 @@ class Handler:
             return
 
         try:
-            result = '{message: "Not registered"}'
+            result = None
             if fn := xraptor.XRaptor.route_matcher(request.method, request.route):
                 if (
                         request.method == MethodType.GET
                         or request.method == MethodType.POST
                 ):
-                    result = await fn(request.payload)
+                    result = await fn(request)
                 if request.method == MethodType.SUB:
                     result = await Handler._subscribe(request, connection, fn)
                 if request.method == MethodType.UNSUB:
-                    result = await fn(request.payload, request.request_id)
+                    result = await fn(request)
                     connection.unregister_response_receiver(request)
-            if result:
-                _response = Response.from_message(
-                    request_id=request.request_id,
-                    header={},
-                    payload=result
-                )
-                await connection.ws.send(_response.json())
+
+                if result is not None:
+                    await connection.ws.send(result.json())
+                return
+            await connection.ws.send(Response.from_message(
+                request_id=request.request_id,
+                header={},
+                payload='{"message": "Not registered"}'
+            ).json())
         except Exception as e:
             logging.error(e)
             _response = Response.from_message(
@@ -75,11 +77,11 @@ class Handler:
             await connection.ws.send(_response.json())
 
     @staticmethod
-    async def _subscribe(request: Request, connection: Connection, fn: Callable) -> Awaitable:
+    async def _subscribe(request: Request, connection: Connection, fn: Callable) -> Awaitable[Response | None]:
         try:
             connection.register_response_receiver(request)
             await asyncio.sleep(0)
-            result = await fn(request.payload, request.request_id)
+            result = await fn(request)
             return result
         except Exception as e:
             logging.error(e)
