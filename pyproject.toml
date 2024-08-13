@@ -20,9 +20,9 @@ redis = { version = "^5.0.8", optional = true}
 redis_edition = ["redis"]
 
 [tool.poetry.urls]
-homepage = "https://github.com/CenturyBoys/my-mimic"
-repository = "https://github.com/CenturyBoys/my-mimic"
-documentation = "https://github.com/CenturyBoys/my-mimic"
+homepage = "https://github.com/CenturyBoys/x-raptor"
+repository = "https://github.com/CenturyBoys/x-raptor"
+documentation = "https://github.com/CenturyBoys/x-raptor"
 
 [build-system]
 requires = ["poetry-core"]
