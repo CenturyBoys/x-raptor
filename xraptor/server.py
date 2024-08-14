@@ -59,7 +59,8 @@ class XRaptor:
         """
         async with serve(Handler.watch, self._ip, self._port) as server:
             self._server = server
-            await asyncio.Future()
+            while True:
+                await asyncio.sleep(10)
 
     @classmethod
     def register(cls, name: str) -> Route:
