@@ -1,5 +1,4 @@
 import asyncio
-import json
 from asyncio import Task
 from dataclasses import dataclass, field
 from uuid import uuid4
@@ -35,9 +34,7 @@ class Connection:
     def register_response_receiver(self, request: Request):
         self.response_receiver.update(
             {
-                request.request_id: asyncio.create_task(
-                    self.antenna(request=request)
-                ),
+                request.request_id: asyncio.create_task(self.antenna(request=request)),
             }
         )
 
@@ -59,10 +56,8 @@ class Connection:
         async for data in antenna.subscribe(request.request_id):
             if isinstance(data, bytes):
                 data = data.decode()
-            _response = Response.from_message(
-                request_id=request.request_id,
-                header={},
-                payload=data
+            _response = Response.create(
+                request_id=request.request_id, header={}, payload=data
             )
             await self.ws.send(_response.json())
 

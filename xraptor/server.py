@@ -24,10 +24,16 @@ class XRaptor:
 
     @classmethod
     def _load_oic(cls):
+        """
+        load oic container with the registered antenna implementation
+        :return:
+        """
         if cls._antenna_cls is None:
             cls._antenna_cls = antennas.RedisAntenna
 
-        assert issubclass(cls._antenna_cls, Antenna), "antenna is not subtype of {}".format(Antenna)
+        assert issubclass(
+            cls._antenna_cls, Antenna
+        ), "antenna is not subtype of {}".format(Antenna)
 
         container = witch_doctor.WitchDoctor.container()
         container(
@@ -38,24 +44,43 @@ class XRaptor:
         witch_doctor.WitchDoctor.load_container()
 
     def load_routes(self) -> Self:
+        """
+        load all registered routes on server
+        :return:
+        """
         [self._map.update(r.get_match_map()) for r in self._routes]
         self._load_oic()
         return self
 
     async def serve(self):
+        """
+        start serve
+        :return:
+        """
         async with serve(Handler.watch, self._ip, self._port) as server:
             self._server = server
             await asyncio.Future()
 
     @classmethod
     def register(cls, name: str) -> Route:
+        """
+        register a route by name and return a Route instance that allow you to register as one of possible route types
+        :param name: route name
+        :return:
+        """
         _route = Route(name)
         cls._routes.append(_route)
         return _route
 
     @classmethod
     def route_matcher(
-            cls, method: MethodType, name: str
+        cls, method: MethodType, name: str
     ) -> Callable[..., Awaitable[Response | None]] | None:
+        """
+        will return the registered async callback for the giving method and route name if registered
+        :param method: on of the allowed MethodType
+        :param name: route name
+        :return:
+        """
         key = f"{name}:{method.value}"
         return cls._map.get(key)

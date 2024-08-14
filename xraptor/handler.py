@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from typing import Callable, Awaitable
 
@@ -49,8 +48,8 @@ class Handler:
             result = None
             if fn := xraptor.XRaptor.route_matcher(request.method, request.route):
                 if (
-                        request.method == MethodType.GET
-                        or request.method == MethodType.POST
+                    request.method == MethodType.GET
+                    or request.method == MethodType.POST
                 ):
                     result = await fn(request)
                 if request.method == MethodType.SUB:
@@ -62,22 +61,24 @@ class Handler:
                 if result is not None:
                     await connection.ws.send(result.json())
                 return
-            await connection.ws.send(Response.from_message(
-                request_id=request.request_id,
-                header={},
-                payload='{"message": "Not registered"}'
-            ).json())
+            await connection.ws.send(
+                Response.create(
+                    request_id=request.request_id,
+                    header={},
+                    payload='{"message": "Not registered"}',
+                ).json()
+            )
         except Exception as e:
             logging.error(e)
-            _response = Response.from_message(
-                request_id=request.request_id,
-                header={},
-                payload='{"message": "fail"}'
+            _response = Response.create(
+                request_id=request.request_id, header={}, payload='{"message": "fail"}'
             )
             await connection.ws.send(_response.json())
 
     @staticmethod
-    async def _subscribe(request: Request, connection: Connection, fn: Callable) -> Awaitable[Response | None]:
+    async def _subscribe(
+        request: Request, connection: Connection, fn: Callable
+    ) -> Awaitable[Response | None]:
         try:
             connection.register_response_receiver(request)
             await asyncio.sleep(0)

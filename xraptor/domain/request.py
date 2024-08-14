@@ -14,14 +14,23 @@ class Request:
     method: MethodType
 
     def __post_init__(self):
-        assert isinstance(self.request_id, str), "request_id is not of type {}".format(str)
+        assert isinstance(self.request_id, str), "request_id is not of type {}".format(
+            str
+        )
         assert isinstance(self.payload, str), "header is not of type {}".format(str)
         assert isinstance(self.header, dict), "payload is not of type {}".format(dict)
         assert isinstance(self.route, str), "payload is not of type {}".format(str)
-        assert isinstance(self.method, MethodType), "payload is not of type {}".format(MethodType)
+        assert isinstance(self.method, MethodType), "payload is not of type {}".format(
+            MethodType
+        )
 
     @classmethod
     def from_message(cls, message: str | bytes):
+        """
+        cast string message to a valid Request object instance
+        :param message: json like string
+        :return: Request instance
+        """
 
         if isinstance(message, bytes):
             message: str = message.decode()

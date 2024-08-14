@@ -1,4 +1,3 @@
-import asyncio
 import json
 import threading
 from uuid import uuid4
@@ -39,14 +38,14 @@ def _send(request_id, message, chat_id, client_id):
     return json.dumps(message).encode()
 
 
-def hello1():
+def chat():
     client_id = str(uuid4())
     chat_id = input("Chat id ->")
     with connect("ws://localhost:8765") as websocket:
         sub_id = str(uuid4())
         websocket.send(_sub(sub_id, chat_id))
 
-        def xxx():
+        def chat_message_loop():
             while True:
                 message = websocket.recv()
                 _data = json.loads(message)
@@ -56,11 +55,9 @@ def hello1():
                     if _p["origin"] == client_id:
                         print(f'You: {_p["message"]}')
                     else:
-                        print(
-                            f'{_p["origin"]}: {_p["message"]}'
-                        )
+                        print(f'{_p["origin"]}: {_p["message"]}')
 
-        _t = threading.Thread(target=xxx)
+        _t = threading.Thread(target=chat_message_loop)
         _t.start()
         print(f"Start chat: {str(chat_id)}")
         while True:
@@ -74,4 +71,4 @@ def hello1():
 
 
 if __name__ == "__main__":
-    hello1()
+    chat()

@@ -16,7 +16,6 @@ to allow user to register `get`, `post`, `sub`, `unsub` asynchronous callbacks. 
 ```python
 import xraptor
 
-
 _xraptor = xraptor.XRaptor("localhost", 8765)
 
 @_xraptor.register("/send_message_to_chat_room").as_post
@@ -31,7 +30,7 @@ async def send_message(
     )
 ```
 
-
+To allow multiple asynchronous responses on `sub` routes X-raptor use the `request_id` as antenna. Those antennas are pubsub channels that `yield` string messages
 
 ### Antenna
 
@@ -79,3 +78,13 @@ pip install 'xraptor[redis_edition]'
 ```
 
 You need pass the `X_RAPTOR_REDIS_URL` parameter on configuration
+
+### Full Example
+
+A very simple chat implementation was created to test `sub`, `poss` and `unsub` routes.
+
+The test work using the `redis_edition` and a singleton package called [meeseeks-singleton](https://pypi.org/project/meeseeks-singleton/) (to install you can add the extra package `test`).
+
+- The [server.py](./example/server.py) implementation can be found here.
+- The [chat_room.py](./example/chat_room.py) implementation can be found here.
+- The [client.py](./example/client.py) implementation can be found here.
