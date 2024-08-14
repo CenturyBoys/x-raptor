@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from asyncio import Task
 from dataclasses import dataclass, field
 from uuid import uuid4
@@ -54,12 +55,15 @@ class Connection:
     @witch_doctor.WitchDoctor.injection
     async def antenna(self, request: Request, antenna: Antenna):
         async for data in antenna.subscribe(request.request_id):
-            if isinstance(data, bytes):
-                data = data.decode()
-            _response = Response.create(
-                request_id=request.request_id, header={}, payload=data
-            )
-            await self.ws.send(_response.json())
+            try:
+                if isinstance(data, bytes):
+                    data = data.decode()
+                _response = Response.create(
+                    request_id=request.request_id, header={}, payload=data
+                )
+                await self.ws.send(_response.json())
+            except Exception as e:
+                logging.error(e)
 
     async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
         self._unregister_all()
