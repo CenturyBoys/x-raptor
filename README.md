@@ -72,7 +72,7 @@ This extra add the redis [package](https://pypi.org/project/redis/) in version `
 How to install extra packages?
 
 ```shell
-poetry add my-mimic -E redis_edition
+poetry add xraptor -E redis_edition
 OR
 pip install 'xraptor[redis_edition]'
 ```
