@@ -30,6 +30,7 @@ class XRaptor:
         :return:
         """
         cls._antenna_cls = antenna
+        cls._load_oic()
 
     @classmethod
     def _load_oic(cls):
@@ -51,6 +52,19 @@ class XRaptor:
             witch_doctor.InjectionType.FACTORY,
         )
         witch_doctor.WitchDoctor.load_container()
+
+    @classmethod
+    def get_antenna(cls) -> Antenna:
+        """
+        return the current antenna implementation
+        :return: Antenna object instance
+        """
+        return cls._get_antenna()
+
+    @classmethod
+    @witch_doctor.WitchDoctor.injection
+    def _get_antenna(cls, antenna: Antenna) -> Antenna:
+        return antenna
 
     def load_routes(self) -> Self:
         """

@@ -29,7 +29,7 @@ async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
 
 @_xraptor.register("/send_message_to_chat_room").as_post
 async def send_message(request: xraptor.Request) -> xraptor.Response:
-    antenna = xraptor.antennas.RedisAntenna()
+    antenna = xraptor.XRaptor.get_antenna()
     data = json.loads(request.payload)
     _chat_id = data["chat_id"]
     _msg = {
