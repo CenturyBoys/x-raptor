@@ -54,8 +54,10 @@ class Broadcast:
             self._close()
 
     def _close(self):
-        self.__task.cancel()
-        self.__check_task.cancel()
+        if self.__task:
+            self.__task.cancel()
+        if self.__check_task:
+            self.__check_task.cancel()
 
     def _open(self):
         """
