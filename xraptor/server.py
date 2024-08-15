@@ -23,6 +23,15 @@ class XRaptor:
         self._server = None
 
     @classmethod
+    def set_antenna(cls, antenna: Type[Antenna]):
+        """
+        set new antenna implementation
+        :param antenna: class that implements all Antenna methods
+        :return:
+        """
+        cls._antenna_cls = antenna
+
+    @classmethod
     def _load_oic(cls):
         """
         load oic container with the registered antenna implementation
@@ -39,7 +48,7 @@ class XRaptor:
         container(
             Antenna,
             cls._antenna_cls,
-            witch_doctor.InjectionType.SINGLETON,
+            witch_doctor.InjectionType.FACTORY,
         )
         witch_doctor.WitchDoctor.load_container()
 

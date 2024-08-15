@@ -1,10 +1,9 @@
 import asyncio
 import json
 
-from redis.asyncio import Redis
 
 import xraptor
-from example.chat_room import ChatRoom
+
 
 _xraptor = xraptor.XRaptor("localhost", 8765)
 
@@ -13,7 +12,7 @@ _xraptor = xraptor.XRaptor("localhost", 8765)
 async def register_on_chat_room(request: xraptor.Request) -> None:
     data = json.loads(request.payload)
     _chat_id = data["chat_id"]
-    chat_room = ChatRoom(_chat_id)
+    chat_room = xraptor.Broadcast.get(_chat_id)
     chat_room.add_member(request.request_id)
 
 
@@ -21,7 +20,7 @@ async def register_on_chat_room(request: xraptor.Request) -> None:
 async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
     data = json.loads(request.payload)
     _chat_id = data["chat_id"]
-    chat_room = ChatRoom(_chat_id)
+    chat_room = xraptor.Broadcast.get(_chat_id)
     chat_room.remove_member(request.request_id)
     return xraptor.Response(
         request_id=request.request_id, header={}, payload='{"message": "tchau!"}'
@@ -30,14 +29,14 @@ async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
 
 @_xraptor.register("/send_message_to_chat_room").as_post
 async def send_message(request: xraptor.Request) -> xraptor.Response:
-    _redis = Redis(host="raspb.local", port=6379, db=0)
+    antenna = xraptor.antennas.RedisAntenna()
     data = json.loads(request.payload)
+    _chat_id = data["chat_id"]
     _msg = {
         "origin": data["client_id"],
         "message": data["message"],
     }
-    await _redis.publish(data["chat_id"], json.dumps(_msg))
-    await _redis.aclose()
+    await antenna.post(_chat_id, json.dumps(_msg))
     return xraptor.Response(
         request_id=request.request_id, header={}, payload='{"message": "Message sent"}'
     )

@@ -81,7 +81,6 @@ class Handler:
     ) -> Awaitable[Response | None]:
         try:
             connection.register_response_receiver(request)
-            await asyncio.sleep(0)
             result = await fn(request)
             return result
         except Exception as e:

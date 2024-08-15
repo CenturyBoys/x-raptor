@@ -14,12 +14,16 @@ class RedisAntenna(Antenna):
         except Exception as e:
             print(e)
 
-    async def subscribe(self, key: str) -> AsyncIterator[str]:
+    async def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
         pubsub = self._redis.pubsub()
-        await pubsub.subscribe(key)
+        await pubsub.subscribe(antenna_id)
         async for message in pubsub.listen():
             if message["type"] == "message":
                 yield message["data"]
 
-    async def post(self, key: str, message: str):
-        await self._redis.publish(key, message)
+    async def post(self, antenna_id: str, message: str):
+        await self._redis.publish(antenna_id, message)
+
+    async def is_alive(self, antenna_id: str) -> bool:
+        num_subscribers = await self._redis.execute_command("PUBSUB", "NUMSUB", antenna_id)
+        return bool(num_subscribers[1])

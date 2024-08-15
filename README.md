@@ -30,7 +30,7 @@ async def send_message(
     )
 ```
 
-To allow multiple asynchronous responses on `sub` routes X-raptor use the `request_id` as antenna. Those antennas are pubsub channels that `yield` string messages
+To allow multiple asynchronous responses on routes X-raptor use the `request_id` as antenna. Those antennas are pubsub channels that `yield` string messages.
 
 ### Antenna
 
@@ -50,7 +50,6 @@ class Antenna(ABC):
         :param key: pubsub channel
         :return: str message async generator
         """
-        pass
 
     @abstractmethod
     def post(self, key: str, message: str) -> Awaitable:
@@ -60,8 +59,18 @@ class Antenna(ABC):
         :param message: message
         :return: 
         """
-        pass
+
+    @abstractmethod
+    def is_alive(self, antenna_id: str) -> Awaitable[bool]:
+        """
+        verify that antenna_id still alive
+        :param antenna_id:
+        :return:
+        """
 ```
+
+### Broadcast
+
 
 ### Extras
 
@@ -83,8 +92,7 @@ You need pass the `X_RAPTOR_REDIS_URL` parameter on configuration
 
 A very simple chat implementation was created to test `sub`, `poss` and `unsub` routes.
 
-The test work using the `redis_edition` and a singleton package called [meeseeks-singleton](https://pypi.org/project/meeseeks-singleton/) (to install you can add the extra package `test`).
+The test work using the `redis_edition`.
 
 - The [server.py](./example/server.py) implementation can be found here.
-- The [chat_room.py](./example/chat_room.py) implementation can be found here.
 - The [client.py](./example/client.py) implementation can be found here.
