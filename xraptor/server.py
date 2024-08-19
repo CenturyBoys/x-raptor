@@ -1,15 +1,19 @@
 import asyncio
+import logging
 from typing import Self, Callable, Type, Awaitable
+from uuid import uuid4
 
+import websockets
 import witch_doctor
 from websockets import serve
+from websockets.frames import CloseCode
 
-from xraptor import antenna_implementations as antennas
+from xraptor.connection import Connection
 from xraptor.core.interfaces import Antenna
 from xraptor.domain.methods import MethodType
 from xraptor.domain.response import Response
 from xraptor.domain.route import Route
-from xraptor.handler import Handler
+from .domain.request import Request
 
 
 class XRaptor:
@@ -17,8 +21,8 @@ class XRaptor:
     _map: dict = {}
     _antenna_cls: Type[object] = None
 
-    def __init__(self, ip: str, port: int):
-        self._ip = ip
+    def __init__(self, ip_address: str, port: int):
+        self._ip = ip_address
         self._port = port
         self._server = None
 
@@ -38,20 +42,17 @@ class XRaptor:
         load oic container with the registered antenna implementation
         :return:
         """
-        if cls._antenna_cls is None:
-            cls._antenna_cls = antennas.RedisAntenna
-
         assert issubclass(
             cls._antenna_cls, Antenna
-        ), "antenna is not subtype of {}".format(Antenna)
-
-        container = witch_doctor.WitchDoctor.container()
+        ), f"antenna is not subtype of {Antenna}"
+        _container_name = str(uuid4())
+        container = witch_doctor.WitchDoctor.container(_container_name)
         container(
             Antenna,
             cls._antenna_cls,
             witch_doctor.InjectionType.FACTORY,
         )
-        witch_doctor.WitchDoctor.load_container()
+        witch_doctor.WitchDoctor.load_container(_container_name)
 
     @classmethod
     def get_antenna(cls) -> Antenna:
@@ -59,7 +60,7 @@ class XRaptor:
         return the current antenna implementation
         :return: Antenna object instance
         """
-        return cls._get_antenna()
+        return cls._get_antenna()  # pylint: disable=E1120
 
     @classmethod
     @witch_doctor.WitchDoctor.injection
@@ -71,7 +72,7 @@ class XRaptor:
         load all registered routes on server
         :return:
         """
-        [self._map.update(r.get_match_map()) for r in self._routes]
+        _ = [self._map.update(r.get_match_map()) for r in self._routes]
         self._load_oic()
         return self
 
@@ -80,7 +81,7 @@ class XRaptor:
         start serve
         :return:
         """
-        async with serve(Handler.watch, self._ip, self._port) as server:
+        async with serve(self._watch, self._ip, self._port) as server:
             self._server = server
             while True:
                 await asyncio.sleep(10)
@@ -88,7 +89,8 @@ class XRaptor:
     @classmethod
     def register(cls, name: str) -> Route:
         """
-        register a route by name and return a Route instance that allow you to register as one of possible route types
+        register a route by name and return a Route instance that allow you to register
+        as one of possible route types
         :param name: route name
         :return:
         """
@@ -108,3 +110,73 @@ class XRaptor:
         """
         key = f"{name}:{method.value}"
         return cls._map.get(key)
+
+    @staticmethod
+    async def _watch(websocket: websockets.WebSocketServerProtocol):
+        connection = Connection.from_ws(websocket)
+        close_code: CloseCode = CloseCode.NORMAL_CLOSURE
+        try:
+            async for message in connection.ws_server:
+                await XRaptor._handle_request(message, connection)
+        except websockets.exceptions.ConnectionClosed as error:
+            logging.error(error)
+            close_code = CloseCode.GOING_AWAY
+        except websockets.exceptions.InvalidHandshake as error:
+            logging.error(error)
+            close_code = CloseCode.TLS_HANDSHAKE
+        except websockets.exceptions.WebSocketException as error:
+            logging.error(error)
+            close_code = CloseCode.PROTOCOL_ERROR
+        except Exception as error:  # pylint: disable=W0718
+            logging.error(error)
+            close_code = CloseCode.ABNORMAL_CLOSURE
+        finally:
+            await connection.close(close_code=close_code)
+            del connection
+
+    @staticmethod
+    async def _handle_request(message: str | bytes, connection: Connection):
+        try:
+            request = Request.from_message(message)
+        except Exception as error:  # pylint: disable=W0718
+            logging.error(error)
+            return
+
+        try:
+            result = None
+            if func := XRaptor.route_matcher(request.method, request.route):
+                if request.method in (MethodType.GET, MethodType.POST):
+                    result = await func(request)
+                if request.method == MethodType.SUB:
+                    result = await XRaptor._subscribe(request, connection, func)
+                if request.method == MethodType.UNSUB:
+                    result = await func(request)
+                    connection.unregister_response_receiver(request)
+
+                if result is not None:
+                    await connection.ws_server.send(result.json())
+                return
+            await connection.ws_server.send(
+                Response.create(
+                    request_id=request.request_id,
+                    header={},
+                    payload='{"message": "Not registered"}',
+                ).json()
+            )
+        except Exception as error:  # pylint: disable=W0718
+            logging.error(error)
+            _response = Response.create(
+                request_id=request.request_id, header={}, payload='{"message": "fail"}'
+            )
+            await connection.ws_server.send(_response.json())
+
+    @staticmethod
+    async def _subscribe(
+        request: Request, connection: Connection, func: Callable
+    ) -> Awaitable[Response | None]:
+        try:
+            connection.register_response_receiver(request)
+            return await func(request)
+        except Exception as error:  # pylint: disable=W0718
+            logging.error(error)
+            connection.unregister_response_receiver(request)

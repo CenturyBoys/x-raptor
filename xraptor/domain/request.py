@@ -1,6 +1,5 @@
 import json
 from dataclasses import dataclass
-from uuid import uuid4
 
 from xraptor.domain.methods import MethodType
 
@@ -14,14 +13,27 @@ class Request:
     method: MethodType
 
     def __post_init__(self):
-        assert isinstance(self.request_id, str), "request_id is not of type {}".format(
-            str
-        )
-        assert isinstance(self.payload, str), "header is not of type {}".format(str)
-        assert isinstance(self.header, dict), "payload is not of type {}".format(dict)
-        assert isinstance(self.route, str), "payload is not of type {}".format(str)
-        assert isinstance(self.method, MethodType), "payload is not of type {}".format(
-            MethodType
+        assert isinstance(self.request_id, str), f"request_id is not of type {str}"
+        assert isinstance(self.payload, str), f"header is not of type {str}"
+        assert isinstance(self.header, dict), f"payload is not of type {dict}"
+        assert isinstance(self.route, str), f"payload is not of type {str}"
+        assert isinstance(
+            self.method, MethodType
+        ), f"payload is not of type {MethodType}"
+
+    def json(self) -> str:
+        """
+        return a string data representation
+        :return:
+        """
+        return json.dumps(
+            {
+                "request_id": self.request_id,
+                "payload": self.payload,
+                "header": self.header,
+                "route": self.route,
+                "method": self.method.value,
+            }
         )
 
     @classmethod
@@ -32,19 +44,11 @@ class Request:
         :return: Request instance
         """
 
-        if isinstance(message, bytes):
-            message: str = message.decode()
-
         message_data = json.loads(message)
 
-        payload = message_data["payload"]
-
-        if isinstance(payload, dict):
-            payload = json.dumps(payload)
-
         return cls(
-            request_id=message_data.get("request_id", str(uuid4())),
-            payload=payload,
+            request_id=message_data["request_id"],
+            payload=message_data["payload"],
             header=message_data["header"],
             route=message_data["route"],
             method=MethodType[message_data["method"]],

@@ -9,11 +9,9 @@ class Response:
     header: dict
 
     def __post_init__(self):
-        assert isinstance(self.request_id, str), "request_id is not of type {}".format(
-            str
-        )
-        assert isinstance(self.header, dict), "header is not of type {}".format(dict)
-        assert isinstance(self.payload, str), "payload is not of type {}".format(str)
+        assert isinstance(self.request_id, str), f"request_id is not of type {str}"
+        assert isinstance(self.header, dict), f"header is not of type {dict}"
+        assert isinstance(self.payload, str), f"payload is not of type {str}"
 
     @classmethod
     def create(cls, request_id: str, header: dict, payload: str):
@@ -31,6 +29,10 @@ class Response:
         )
 
     def json(self):
+        """
+        return a string data representation
+        :return:
+        """
         return json.dumps(
             {
                 "request_id": self.request_id,

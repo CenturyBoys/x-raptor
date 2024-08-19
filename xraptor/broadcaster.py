@@ -31,6 +31,10 @@ class Broadcast:
             cls._broadcasts.update({broadcast_id: Broadcast(broadcast_id)})
         return cls._broadcasts.get(broadcast_id)
 
+    @classmethod
+    def _delete(cls, broadcast_id: str):
+        del cls._broadcasts[broadcast_id]
+
     def add_member(self, member: str):
         """
         add member on this chat room and if is the first to coming in, will open the room.
@@ -52,6 +56,7 @@ class Broadcast:
         self.__members = list(_members)
         if len(self.__members) == 0:
             self._close()
+            self._delete(self.__broadcast_id)
 
     def _close(self):
         if self.__task:
@@ -61,37 +66,35 @@ class Broadcast:
 
     def _open(self):
         """
-        Start to task to listening chat pubsub channel and to check if registered members still connected.
+        Start to task to listening chat pubsub channel and to check if
+        registered members still connected.
         :return:
         """
-        self.__task = asyncio.create_task(self._listening())
-        self.__check_task = asyncio.create_task(self._check())
+        self.__task = asyncio.create_task(self._listening())  # pylint: disable=E1120
+        self.__check_task = asyncio.create_task(self._check())  # pylint: disable=E1120
 
     @witch_doctor.WitchDoctor.injection
-    async def _check(self, antenna: Antenna):
+    async def _check(self, antenna: Antenna, frequency: int = 7):
         """
-        check each 7 seconds, using PUBSUB NUMSUB redis command, if each member on this room still connected,
-        otherwise the member will be removed.
+        check each 7 seconds, using PUBSUB NUMSUB redis command, if each
+        member on this room still connected, otherwise the member will be removed.
         :return:
         """
         while True:
             _to_check = [*self.__members]
-            _status = await asyncio.gather(
-                *[antenna.is_alive(i) for i in _to_check]
-            )
-            [
+            _status = await asyncio.gather(*[antenna.is_alive(i) for i in _to_check])
+            _ = [
                 None if is_alive else self.remove_member(_to_check[index])
                 for index, is_alive in enumerate(_status)
             ]
-            await asyncio.sleep(7)
+            await asyncio.sleep(frequency)
 
     @witch_doctor.WitchDoctor.injection
     async def _listening(self, antenna: Antenna):
         """
-        start listening each message from the chat room pubsub channel and broadcast it to each member in this room.
+        start listening each message from the chat room pubsub
+        channel and broadcast it to each member in this room.
         :return:
         """
         async for data in antenna.subscribe(self.__broadcast_id):
-            await asyncio.gather(
-                *[antenna.post(i, data) for i in self.__members]
-            )
+            await asyncio.gather(*[antenna.post(i, data) for i in self.__members])

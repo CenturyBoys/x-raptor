@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xraptor"
-version = "0.1.44b"
+version = "0.2.0"
 description = "Fast as websocket easy as http"
 authors = ["Marco Sievers de Almeida <im.ximit@gmail.com>"]
 readme = "README.md"
@@ -15,9 +15,17 @@ python-ulid = "^2.7.0"
 witch-doctor = "^1.2.0"
 python-decouple = "^3.8"
 redis = { version = "^5.0.8", optional = true}
+meeseeks-singleton = "^0.4.4"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.2"
+pytest-asyncio = "^0.23.8"
+black = "^23.11.0"
+pylint = "^2.15.10"
+pre-commit = "^3.5.0"
 
 [tool.poetry.extras]
-redis_edition = ["redis"]
+redis_version = ["redis"]
 
 [tool.poetry.urls]
 homepage = "https://github.com/CenturyBoys/x-raptor"

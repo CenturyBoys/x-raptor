@@ -18,24 +18,26 @@ class Connection:
     path: str
     connection_hash: int
     remote_ip: str
-    ws: WebSocketServerProtocol
+    ws_server: WebSocketServerProtocol
     connection_id: str
     response_receiver: dict = field(default_factory=dict)
 
     @classmethod
-    def from_ws(cls, ws: WebSocketServerProtocol):
+    def from_ws(cls, ws_server: WebSocketServerProtocol):
         return cls(
-            path=ws.path,
-            connection_hash=ws.__hash__(),
-            remote_ip=ws.remote_address[0],
-            ws=ws,
+            path=ws_server.path,
+            connection_hash=ws_server.__hash__(),  # pylint: disable=C2801
+            remote_ip=ws_server.remote_address[0],
+            ws_server=ws_server,
             connection_id=str(uuid4()),
         )
 
     def register_response_receiver(self, request: Request):
         self.response_receiver.update(
             {
-                request.request_id: asyncio.create_task(self.antenna(request=request)),
+                request.request_id: asyncio.create_task(
+                    self.antenna(request=request)  # pylint: disable=E1120
+                ),
             }
         )
 
@@ -61,10 +63,10 @@ class Connection:
                 _response = Response.create(
                     request_id=request.request_id, header={}, payload=data
                 )
-                await self.ws.send(_response.json())
-            except Exception as e:
-                logging.error(e)
+                await self.ws_server.send(_response.json())
+            except Exception as error:  # pylint: disable=W0718
+                logging.error(error)
 
     async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
         self._unregister_all()
-        await self.ws.close(close_code)
+        await self.ws_server.close(close_code)

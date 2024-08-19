@@ -1,14 +1,10 @@
 import asyncio
 import json
 
-
 import xraptor
 
 
-_xraptor = xraptor.XRaptor("localhost", 8765)
-
-
-@_xraptor.register("/chat_messages").as_sub
+@xraptor.XRaptor.register("/chat_messages").as_sub
 async def register_on_chat_room(request: xraptor.Request) -> None:
     data = json.loads(request.payload)
     _chat_id = data["chat_id"]
@@ -16,7 +12,7 @@ async def register_on_chat_room(request: xraptor.Request) -> None:
     chat_room.add_member(request.request_id)
 
 
-@_xraptor.register("/chat_messages").as_unsub
+@xraptor.XRaptor.register("/chat_messages").as_unsub
 async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
     data = json.loads(request.payload)
     _chat_id = data["chat_id"]
@@ -27,7 +23,7 @@ async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
     )
 
 
-@_xraptor.register("/send_message_to_chat_room").as_post
+@xraptor.XRaptor.register("/send_message_to_chat_room").as_post
 async def send_message(request: xraptor.Request) -> xraptor.Response:
     antenna = xraptor.XRaptor.get_antenna()
     data = json.loads(request.payload)
@@ -43,4 +39,8 @@ async def send_message(request: xraptor.Request) -> xraptor.Response:
 
 
 if __name__ == "__main__":
+    _xraptor = xraptor.XRaptor("localhost", 8765)
+
+    _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
+
     asyncio.run(_xraptor.load_routes().serve())

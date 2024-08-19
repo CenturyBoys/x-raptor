@@ -4,38 +4,40 @@ from uuid import uuid4
 
 from websockets.sync.client import connect
 
+import xraptor
+from xraptor.domain.methods import MethodType
+
 
 def _sub(request_id, chat_id):
-    message = {
-        "request_id": request_id,
-        "payload": {"chat_id": chat_id},
-        "header": {},
-        "route": "/chat_messages",
-        "method": "SUB",
-    }
-    return json.dumps(message).encode()
+    return xraptor.Request(
+        request_id=request_id,
+        payload=json.dumps({"chat_id": chat_id}),
+        header={},
+        route="/chat_messages",
+        method=MethodType.SUB,
+    ).json()
 
 
 def _unsub(request_id, chat_id):
-    message = {
-        "request_id": request_id,
-        "payload": {"chat_id": chat_id},
-        "header": {},
-        "route": "/chat_messages",
-        "method": "UNSUB",
-    }
-    return json.dumps(message).encode()
+    return xraptor.Request(
+        request_id=request_id,
+        payload=json.dumps({"chat_id": chat_id}),
+        header={},
+        route="/chat_messages",
+        method=MethodType.UNSUB,
+    ).json()
 
 
 def _send(request_id, message, chat_id, client_id):
-    message = {
-        "request_id": request_id,
-        "payload": {"message": message, "chat_id": chat_id, "client_id": client_id},
-        "header": {},
-        "route": "/send_message_to_chat_room",
-        "method": "POST",
-    }
-    return json.dumps(message).encode()
+    return xraptor.Request(
+        request_id=request_id,
+        payload=json.dumps(
+            {"message": message, "chat_id": chat_id, "client_id": client_id}
+        ),
+        header={},
+        route="/send_message_to_chat_room",
+        method=MethodType.POST,
+    ).json()
 
 
 def chat():
@@ -59,6 +61,7 @@ def chat():
 
         _t = threading.Thread(target=chat_message_loop)
         _t.start()
+
         print(f"Start chat: {str(chat_id)}")
         while True:
             try:
@@ -66,7 +69,7 @@ def chat():
                 if text == "unsub":
                     websocket.send(_unsub(sub_id, chat_id))
                 websocket.send(_send(str(uuid4()), text, chat_id, client_id))
-            except Exception:
+            except Exception:  # pylint: disable=W0718
                 websocket.send(_unsub(sub_id, chat_id))
 
 

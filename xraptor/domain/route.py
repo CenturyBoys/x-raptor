@@ -13,21 +13,21 @@ class Route:
 
     def __init__(self, name: str):
         self.name = name
-        self._map: dict[MethodType, Callable[[Request], Awaitable[Response | None]]] = (
-            {}
-        )
+        self._map: dict[
+            MethodType, Callable[[Request], Awaitable[Response | None]]
+        ] = {}
 
-    def as_get(self, fn: Callable[[Request], Awaitable[Response | None]]):
-        self._map.update({MethodType.GET: fn})
+    def as_get(self, func: Callable[[Request], Awaitable[Response | None]]):
+        self._map.update({MethodType.GET: func})
 
-    def as_post(self, fn: Callable[[Request], Awaitable[Response | None]]):
-        self._map.update({MethodType.POST: fn})
+    def as_post(self, func: Callable[[Request], Awaitable[Response | None]]):
+        self._map.update({MethodType.POST: func})
 
-    def as_sub(self, fn: Callable[[Request], Awaitable[Response | None]]):
-        self._map.update({MethodType.SUB: fn})
+    def as_sub(self, func: Callable[[Request], Awaitable[Response | None]]):
+        self._map.update({MethodType.SUB: func})
 
-    def as_unsub(self, fn: Callable[[Request], Awaitable[Response | None]]):
-        self._map.update({MethodType.UNSUB: fn})
+    def as_unsub(self, func: Callable[[Request], Awaitable[Response | None]]):
+        self._map.update({MethodType.UNSUB: func})
 
     def get_match_map(self):
-        return {f"{self.name}:{m.value}": self._map[m] for m in self._map}
+        return {f"{self.name}:{m.value}": v for m, v in self._map.items()}

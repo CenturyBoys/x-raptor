@@ -1,8 +1,11 @@
 """
-Import of  default state and extras
+Extras import
 """
 
-__all__ = []
+from xraptor.antenna_implementations.memory import MemoryAntenna
+from xraptor.core.interfaces import Antenna as IAntenna
+
+__all__ = ["IAntenna", "MemoryAntenna"]
 
 # Redis edition extra
 try:
