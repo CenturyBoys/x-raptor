@@ -1,16 +1,21 @@
 import logging
-from typing import AsyncIterator
+from typing import AsyncIterator, TypedDict
 
 import redis.asyncio as redis
-from decouple import config
 
 from xraptor.core.interfaces import Antenna
 
 
+class ConfigAntenna(TypedDict):
+    url: str
+
+
 class RedisAntenna(Antenna):
+    _config: ConfigAntenna = {}
+
     def __init__(self):
         try:
-            self._redis = redis.Redis.from_url(url=config("X_RAPTOR_REDIS_URL"))
+            self._redis = redis.Redis.from_url(url=self._config["url"])
         except Exception as error:  # pylint: disable=W0718
             logging.error(error)
 
@@ -29,3 +34,7 @@ class RedisAntenna(Antenna):
             "PUBSUB", "NUMSUB", antenna_id
         )
         return bool(num_subscribers[1])
+
+    @classmethod
+    def set_config(cls, config: ConfigAntenna):
+        cls._config = config

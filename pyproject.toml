@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "xraptor"
-version = "0.2.0"
+version = "0.3.0"
 description = "Fast as websocket easy as http"
 authors = ["Marco Sievers de Almeida <im.ximit@gmail.com>"]
 readme = "README.md"

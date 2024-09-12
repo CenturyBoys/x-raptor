@@ -10,17 +10,22 @@ By: CenturyBoys
 
 This package is being developed and is in the testing process. **🚨 NOT USE THIS PACKAGE IN PRODUCTION !!!**
 
-Fast as websocket easy as http, this package is an abstraction of [websockets](https://pypi.org/project/websockets/) package
-to allow user to register `get`, `post`, `sub`, `unsub` asynchronous callbacks. For this all message must be a requests or a response object.
+Fast as websocket easy as http, this package is an abstraction of [websockets](https://pypi.org/project/websockets/)
+package
+to allow user to register `get`, `post`, `sub`, `unsub` asynchronous callbacks. For this all message must be a requests
+or a response object.
 
-To allow multiple asynchronous responses on routes X-raptor use the `request_id` as antenna. Those antennas are pubsub channels that `yield` string messages.
+To allow multiple asynchronous responses on routes X-raptor use the `request_id` as antenna. Those antennas are pubsub
+channels that `yield` string messages.
 
 ### Registering a route
 
-To register a route you can use the `xraptor.XRaptor.register` to get the route instance and use the `as_` (`as_get`, `as_post`, `as_sub`, `as_unsub`,) decorator. See below an example
+To register a route you can use the `xraptor.XRaptor.register` to get the route instance and use
+the `as_` (`as_get`, `as_post`, `as_sub`, `as_unsub`,) decorator. See below an example
 
 ```python
 import xraptor
+
 
 @xraptor.XRaptor.register("/send_message_to_chat_room").as_post
 async def send_message(
@@ -37,6 +42,8 @@ import asyncio
 
 _xraptor = xraptor.XRaptor("localhost", 8765)
 
+xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
+
 _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
 
 asyncio.run(_xraptor.load_routes().serve())
@@ -44,12 +51,14 @@ asyncio.run(_xraptor.load_routes().serve())
 
 ### 📡 Antenna
 
-There is a default antenna (that use memory queue) configuration but is not recommended to use, you have two options implements your own antenna class using the [interface](./xraptor/core/interfaces.py) 
+There is a default antenna (that use memory queue) configuration but is not recommended to use, you have two options
+implements your own antenna class using the [interface](./xraptor/core/interfaces.py)
 or use one of the extra packages.
 
 ```python
 from abc import ABC, abstractmethod
 from typing import AsyncIterator, Awaitable
+
 
 class Antenna(ABC):
 
@@ -77,16 +86,28 @@ class Antenna(ABC):
         :param antenna_id:
         :return:
         """
+
+    @classmethod
+    @abstractmethod
+    def set_config(cls, config: dict):
+        """
+        set config map for this antenna
+        :param config:
+        :return:
+        """
 ```
 
 ### 📤 Broadcast
 
-The library provides a broadcast room implementation that enables users to register and receive messages within a shared space. This functionality is similar to a chat room where multiple users can join and automatically receive all messages posted without requiring constant polling.
+The library provides a broadcast room implementation that enables users to register and receive messages within a shared
+space. This functionality is similar to a chat room where multiple users can join and automatically receive all messages
+posted without requiring constant polling.
 
 This broadcast implementation use the registered antenna to handle request and (un)subscriptions
 
 ```python
 from typing import Self
+
 
 class Broadcast:
     @classmethod
@@ -126,7 +147,17 @@ OR
 pip install 'xraptor[redis_version]'
 ```
 
-You need pass the `X_RAPTOR_REDIS_URL` parameter on configuration
+Redis antenna need string connection that you will configure on his antenna using the `set_config`.
+
+```python
+import xraptor
+
+...
+
+xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
+
+...
+```
 
 ## 🧮 Full Example
 

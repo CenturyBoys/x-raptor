@@ -10,6 +10,7 @@ from xraptor.core.interfaces import Antenna
 @meeseeks.OnlyOne()
 class MemoryAntenna(Antenna):
     _queues = {}
+    _config = {}
 
     async def subscribe(self, antenna_id: str) -> AsyncIterator:
         if antenna_id not in self._queues:
@@ -28,3 +29,7 @@ class MemoryAntenna(Antenna):
 
     async def is_alive(self, antenna_id: str) -> bool:
         return antenna_id in self._queues
+
+    @classmethod
+    def set_config(cls, config: dict):
+        pass

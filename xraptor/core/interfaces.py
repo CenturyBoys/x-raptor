@@ -27,3 +27,12 @@ class Antenna(ABC):
         :param antenna_id:
         :return:
         """
+
+    @classmethod
+    @abstractmethod
+    def set_config(cls, config: dict):
+        """
+        set config map for this antenna
+        :param config:
+        :return:
+        """
