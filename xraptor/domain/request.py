@@ -14,12 +14,12 @@ class Request:
 
     def __post_init__(self):
         assert isinstance(self.request_id, str), f"request_id is not of type {str}"
-        assert isinstance(self.payload, str), f"header is not of type {str}"
-        assert isinstance(self.header, dict), f"payload is not of type {dict}"
-        assert isinstance(self.route, str), f"payload is not of type {str}"
+        assert isinstance(self.payload, str), f"payload is not of type {str}"
+        assert isinstance(self.header, dict), f"header is not of type {dict}"
+        assert isinstance(self.route, str), f"route is not of type {str}"
         assert isinstance(
             self.method, MethodType
-        ), f"payload is not of type {MethodType}"
+        ), f"method is not of type {MethodType}"
 
     def json(self) -> str:
         """

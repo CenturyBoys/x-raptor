@@ -61,7 +61,10 @@ class Connection:
                 if isinstance(data, bytes):
                     data = data.decode()
                 _response = Response.create(
-                    request_id=request.request_id, header={}, payload=data
+                    request_id=request.request_id,
+                    header={},
+                    payload=data,
+                    method=request.method,
                 )
                 await self.ws_server.send(_response.json())
             except Exception as error:  # pylint: disable=W0718

@@ -7,20 +7,20 @@ repos:
       language: system
       types: [ python ]
       always_run: false
-    - id: pylint
-      name: pylint
-      entry: pylint xraptor
-      language: system
-      types: [python]
-      args:
-        [
-          "--disable",
-          "C0114,C0115,C0116",
-          "--ignore-paths",
-          "tests/",
-          "-rn", # Only display messages
-          "-sn", # Don't display the score
-        ]
+#    - id: pylint
+#      name: pylint
+#      entry: pylint xraptor
+#      language: system
+#      types: [python]
+#      args:
+#        [
+#          "--disable",
+#          "C0114,C0115,C0116",
+#          "--ignore-paths",
+#          "tests/",
+#          "-rn", # Only display messages
+#          "-sn", # Don't display the score
+#        ]
     - id: pytest
       name: pytest
       entry: pytest

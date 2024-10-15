@@ -161,12 +161,16 @@ class XRaptor:
                     request_id=request.request_id,
                     header={},
                     payload='{"message": "Not registered"}',
+                    method=request.method,
                 ).json()
             )
         except Exception as error:  # pylint: disable=W0718
             logging.error(error)
             _response = Response.create(
-                request_id=request.request_id, header={}, payload='{"message": "fail"}'
+                request_id=request.request_id,
+                header={},
+                payload='{"message": "fail"}',
+                method=request.method,
             )
             await connection.ws_server.send(_response.json())
 
