@@ -12,6 +12,14 @@ class Antenna(ABC):
         """
 
     @abstractmethod
+    async def stop_listening(self):
+        """
+        stop listening messages
+        :param antenna_id: pubsub channel
+        :return:
+        """
+
+    @abstractmethod
     async def post(self, antenna_id: str, message: str) -> Awaitable:
         """
         async function that will publish a message to a key's channel

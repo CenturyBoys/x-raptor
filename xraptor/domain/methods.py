@@ -6,3 +6,4 @@ class MethodType(Enum):
     GET = "GET"
     SUB = "SUB"
     UNSUB = "UNSUB"
+    PUT = "PUT"

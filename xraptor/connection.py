@@ -35,41 +35,44 @@ class Connection:
     def register_response_receiver(self, request: Request):
         self.response_receiver.update(
             {
-                request.request_id: asyncio.create_task(
-                    self.antenna(request=request)  # pylint: disable=E1120
-                ),
+                request.request_id: self.antenna(request=request),
             }
         )
 
-    def unregister_response_receiver(self, request: Request):
+    async def unregister_response_receiver(self, request: Request):
         if request.request_id in self.response_receiver:
-            _task: Task = self.response_receiver[request.request_id]
+            _antenna, _task = self.response_receiver[request.request_id]
+            await _antenna.stop_listening()
             _task.cancel()
             del self.response_receiver[request.request_id]
 
-    def _unregister_all(self):
+    async def _unregister_all(self):
         _r = [*self.response_receiver]
         for request_id in _r:
-            if _task := self.response_receiver.get(request_id):
+            if request_id in self.response_receiver:
+                _antenna, _task = self.response_receiver[request_id]
+                await _antenna.stop_listening()
                 _task.cancel()
                 del self.response_receiver[request_id]
 
     @witch_doctor.WitchDoctor.injection
-    async def antenna(self, request: Request, antenna: Antenna):
-        async for data in antenna.subscribe(request.request_id):
-            try:
-                if isinstance(data, bytes):
-                    data = data.decode()
-                _response = Response.create(
-                    request_id=request.request_id,
-                    header={},
-                    payload=data,
-                    method=request.method,
-                )
-                await self.ws_server.send(_response.json())
-            except Exception as error:  # pylint: disable=W0718
-                logging.error(error)
+    def antenna(self, request: Request, antenna: Antenna) -> tuple[Antenna, asyncio.Task]:
+        async def listener():
+            async for data in antenna.subscribe(request.request_id):
+                try:
+                    if isinstance(data, bytes):
+                        data = data.decode()
+                    _response = Response.create(
+                        request_id=request.request_id,
+                        header={},
+                        payload=data,
+                        method=request.method,
+                    )
+                    await self.ws_server.send(_response.json())
+                except Exception as error:  # pylint: disable=W0718
+                    logging.error(error)
+        return antenna, asyncio.create_task(listener())
 
     async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
-        self._unregister_all()
+        await self._unregister_all()
         await self.ws_server.close(close_code)

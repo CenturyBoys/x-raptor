@@ -69,6 +69,14 @@ class Antenna(ABC):
         :param key: pubsub channel
         :return: str message async generator
         """
+    
+    @abstractmethod
+    async def stop_listening(self):
+        """
+        stop listening messages
+        :param antenna_id: pubsub channel
+        :return:
+        """
 
     @abstractmethod
     def post(self, key: str, message: str) -> Awaitable:

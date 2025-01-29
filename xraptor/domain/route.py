@@ -29,5 +29,8 @@ class Route:
     def as_unsub(self, func: Callable[[Request], Awaitable[Response | None]]):
         self._map.update({MethodType.UNSUB: func})
 
+    def as_put(self, func: Callable[[Request], Awaitable[Response | None]]):
+        self._map.update({MethodType.PUT: func})
+
     def get_match_map(self):
         return {f"{self.name}:{m.value}": v for m, v in self._map.items()}

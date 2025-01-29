@@ -145,14 +145,13 @@ class XRaptor:
         try:
             result = None
             if func := XRaptor.route_matcher(request.method, request.route):
-                if request.method in (MethodType.GET, MethodType.POST):
+                if request.method in (MethodType.GET, MethodType.POST, MethodType.PUT):
                     result = await func(request)
                 if request.method == MethodType.SUB:
                     result = await XRaptor._subscribe(request, connection, func)
                 if request.method == MethodType.UNSUB:
                     result = await func(request)
-                    connection.unregister_response_receiver(request)
-
+                    await connection.unregister_response_receiver(request)
                 if result is not None:
                     await connection.ws_server.send(result.json())
                 return
@@ -183,4 +182,4 @@ class XRaptor:
             return await func(request)
         except Exception as error:  # pylint: disable=W0718
             logging.error(error)
-            connection.unregister_response_receiver(request)
+            await connection.unregister_response_receiver(request)
