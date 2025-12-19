@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import re
+from dataclasses import dataclass
 from typing import Self, Callable, Type, Awaitable
 from uuid import uuid4
 
@@ -16,10 +18,18 @@ from xraptor.domain.route import Route
 from .domain.request import Request
 
 
+@dataclass
+class MiddlewareConfig:
+    priority: int
+    pattern: re.Pattern | None
+    func: Callable[["Request", "Connection"], Awaitable["Response | None"]]
+
+
 class XRaptor:
     _routes: list[Route] = []
     _map: dict = {}
     _antenna_cls: Type[object] = None
+    _middlewares: list[MiddlewareConfig] = []
 
     def __init__(self, ip_address: str, port: int):
         self._ip = ip_address
@@ -111,6 +121,56 @@ class XRaptor:
         key = f"{name}:{method.value}"
         return cls._map.get(key)
 
+    @classmethod
+    def middleware(cls, priority: int, pattern: str | None = None):
+        """
+        Decorator to register a middleware function.
+        :param priority: execution order (lower runs first), must be unique
+        :param pattern: optional regex pattern to match routes (None = all routes)
+        :return: decorator
+        """
+
+        def decorator(
+            func: Callable[[Request, Connection], Awaitable[Response | None]],
+        ):
+            for mw in cls._middlewares:
+                if mw.priority == priority:
+                    raise ValueError(
+                        f"Middleware priority {priority} already registered"
+                    )
+
+            compiled_pattern = re.compile(pattern) if pattern else None
+            cls._middlewares.append(
+                MiddlewareConfig(
+                    priority=priority,
+                    pattern=compiled_pattern,
+                    func=func,
+                )
+            )
+            cls._middlewares.sort(key=lambda m: m.priority)
+            return func
+
+        return decorator
+
+    @classmethod
+    async def _run_middlewares(
+        cls, request: Request, connection: Connection
+    ) -> Response | None:
+        """
+        Execute all matching middlewares sequentially by priority.
+        :return: Response if short-circuited, None to continue to handler
+        """
+        for mw in cls._middlewares:
+            if mw.pattern is not None and not mw.pattern.match(request.route):
+                continue
+            result = await mw.func(request, connection)
+            if result is not None:
+                assert isinstance(
+                    result, Response
+                ), f"Middleware must return Response or None, got {type(result)}"
+                return result
+        return None
+
     @staticmethod
     async def _watch(websocket: websockets.WebSocketServerProtocol):
         connection = Connection.from_ws(websocket)
@@ -143,6 +203,11 @@ class XRaptor:
             return
 
         try:
+            middleware_result = await XRaptor._run_middlewares(request, connection)
+            if middleware_result is not None:
+                await connection.ws_server.send(middleware_result.json())
+                return
+
             result = None
             if func := XRaptor.route_matcher(request.method, request.route):
                 if request.method in (MethodType.GET, MethodType.POST, MethodType.PUT):

@@ -49,6 +49,38 @@ _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
 asyncio.run(_xraptor.load_routes().serve())
 ```
 
+### 🔗 Middleware
+
+X-raptor supports middleware functions that run before route handlers. Middlewares can inspect/modify requests, short-circuit responses, or perform cross-cutting concerns like authentication and logging.
+
+```python
+import xraptor
+
+@xraptor.XRaptor.middleware(priority=1)
+async def auth_middleware(request: xraptor.Request, connection) -> xraptor.Response | None:
+    if not request.header.get("token"):
+        return xraptor.Response.create(
+            request_id=request.request_id,
+            header={},
+            payload='{"error": "unauthorized"}',
+            method=request.method,
+        )
+    return None  # Continue to next middleware/handler
+```
+
+**Priority**: Lower numbers run first. Each priority must be unique.
+
+**Pattern matching**: Optionally restrict middleware to specific routes using regex:
+
+```python
+@xraptor.XRaptor.middleware(priority=2, pattern=r"^/api/.*")
+async def api_only_middleware(request, connection):
+    # Only runs for routes starting with /api/
+    return None
+```
+
+**Short-circuiting**: Return a `Response` to stop the chain and skip the route handler. Return `None` to continue.
+
 ### 📡 Antenna
 
 There is a default antenna (that use memory queue) configuration but is not recommended to use, you have two options

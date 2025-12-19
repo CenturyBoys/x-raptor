@@ -19,7 +19,10 @@ async def unregister_on_chat_room(request: xraptor.Request) -> xraptor.Response:
     chat_room = xraptor.Broadcast.get(_chat_id)
     chat_room.remove_member(request.request_id)
     return xraptor.Response(
-        request_id=request.request_id, header={}, payload='{"message": "tchau!"}'
+        request_id=request.request_id,
+        header={},
+        payload='{"message": "tchau!"}',
+        method=xraptor.MethodType.UNSUB,
     )
 
 
@@ -34,13 +37,16 @@ async def send_message(request: xraptor.Request) -> xraptor.Response:
     }
     await antenna.post(_chat_id, json.dumps(_msg))
     return xraptor.Response(
-        request_id=request.request_id, header={}, payload='{"message": "Message sent"}'
+        request_id=request.request_id,
+        header={},
+        payload='{"message": "Message sent"}',
+        method=xraptor.MethodType.POST,
     )
 
 
 if __name__ == "__main__":
     _xraptor = xraptor.XRaptor("localhost", 8765)
 
-    _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
+    _xraptor.set_antenna(xraptor.antennas.MemoryAntenna)
 
     asyncio.run(_xraptor.load_routes().serve())

@@ -32,7 +32,7 @@ async def test_register_response_receiver():
 
     _c.register_response_receiver(_r)
     assert _r.request_id in _c.response_receiver
-    _c.unregister_response_receiver(_r)
+    await _c.unregister_response_receiver(_r)
     assert _r.request_id not in _c.response_receiver
 
 
@@ -50,5 +50,5 @@ async def test_unregister_all():
 
     _c.register_response_receiver(_r)
     assert _r.request_id in _c.response_receiver
-    _c._unregister_all()
+    await _c._unregister_all()
     assert _r.request_id not in _c.response_receiver
