@@ -51,5 +51,5 @@ class Request:
             payload=message_data["payload"],
             header=message_data["header"],
             route=message_data["route"],
-            method=MethodType[message_data["method"]],
+            method=MethodType[message_data["method"].upper()],
         )
