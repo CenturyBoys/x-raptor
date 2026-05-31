@@ -1,5 +1,10 @@
 # X-raptor
 
+[![CI](https://github.com/CenturyBoys/x-raptor/actions/workflows/ci.yml/badge.svg)](https://github.com/CenturyBoys/x-raptor/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/xraptor)](https://pypi.org/project/xraptor/)
+[![Python](https://img.shields.io/pypi/pyversions/xraptor)](https://pypi.org/project/xraptor/)
+[![License](https://img.shields.io/github/license/CenturyBoys/x-raptor)](https://github.com/CenturyBoys/x-raptor/blob/main/LICENSE)
+
 ![banner](https://raw.githubusercontent.com/CenturyBoys/x-raptor/main/docs/banner.jpeg)
 
 ```
