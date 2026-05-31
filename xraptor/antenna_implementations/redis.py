@@ -20,7 +20,7 @@ class RedisAntenna(Antenna):
             self._running = True
 
         except Exception as error:  # pylint: disable=W0718
-            logging.error(error)
+            logging.exception(error)
 
     async def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
         await self._pubsub.subscribe(antenna_id)

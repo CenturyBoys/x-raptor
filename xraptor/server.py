@@ -179,16 +179,16 @@ class XRaptor:
             async for message in connection.ws_server:
                 await XRaptor._handle_request(message, connection)
         except websockets.exceptions.ConnectionClosed as error:
-            logging.error(error)
+            logging.exception(error)
             close_code = CloseCode.GOING_AWAY
         except websockets.exceptions.InvalidHandshake as error:
-            logging.error(error)
+            logging.exception(error)
             close_code = CloseCode.TLS_HANDSHAKE
         except websockets.exceptions.WebSocketException as error:
-            logging.error(error)
+            logging.exception(error)
             close_code = CloseCode.PROTOCOL_ERROR
         except Exception as error:  # pylint: disable=W0718
-            logging.error(error)
+            logging.exception(error)
             close_code = CloseCode.ABNORMAL_CLOSURE
         finally:
             await connection.close(close_code=close_code)
@@ -199,7 +199,7 @@ class XRaptor:
         try:
             request = Request.from_message(message)
         except Exception as error:  # pylint: disable=W0718
-            logging.error(error)
+            logging.exception(error)
             return
 
         try:
@@ -229,7 +229,7 @@ class XRaptor:
                 ).json()
             )
         except Exception as error:  # pylint: disable=W0718
-            logging.error(error)
+            logging.exception(error)
             _response = Response.create(
                 request_id=request.request_id,
                 header={},
@@ -246,5 +246,5 @@ class XRaptor:
             connection.register_response_receiver(request)
             return await func(request)
         except Exception as error:  # pylint: disable=W0718
-            logging.error(error)
+            logging.exception(error)
             await connection.unregister_response_receiver(request)

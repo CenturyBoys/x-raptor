@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from asyncio import Task
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -56,7 +55,9 @@ class Connection:
                 del self.response_receiver[request_id]
 
     @witch_doctor.WitchDoctor.injection
-    def antenna(self, request: Request, antenna: Antenna) -> tuple[Antenna, asyncio.Task]:
+    def antenna(
+        self, request: Request, antenna: Antenna
+    ) -> tuple[Antenna, asyncio.Task]:
         async def listener():
             async for data in antenna.subscribe(request.request_id):
                 try:
@@ -70,7 +71,8 @@ class Connection:
                     )
                     await self.ws_server.send(_response.json())
                 except Exception as error:  # pylint: disable=W0718
-                    logging.error(error)
+                    logging.exception(error)
+
         return antenna, asyncio.create_task(listener())
 
     async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
