@@ -4,7 +4,6 @@ from uuid import uuid4
 import pytest
 import websockets
 
-import xraptor
 from tests.stub import StubWS
 from xraptor import Request
 from xraptor.connection import Connection

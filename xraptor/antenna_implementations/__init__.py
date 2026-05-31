@@ -9,10 +9,10 @@ __all__ = ["IAntenna", "MemoryAntenna"]
 
 # Redis edition extra
 try:
-    import redis.asyncio as redis
-    from .redis import RedisAntenna, ConfigAntenna
+    import redis.asyncio as redis  # noqa: F401
 
-    __all__ += "RedisAntenna"
-    __all__ += "ConfigAntenna"
-except ImportError as error:  # pragma: no cover
+    from .redis import ConfigAntenna, RedisAntenna
+
+    __all__ += ["RedisAntenna", "ConfigAntenna"]
+except ImportError:  # pragma: no cover
     pass

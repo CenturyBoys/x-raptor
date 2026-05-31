@@ -5,19 +5,19 @@ def test_register_and_match_map():
     _route = Route("/test")
 
     @_route.as_get
-    async def y():
+    async def handler_get():
         pass
 
     @_route.as_post
-    async def y():
+    async def handler_post():
         pass
 
     @_route.as_sub
-    async def y():
+    async def handler_sub():
         pass
 
     @_route.as_unsub
-    async def y():
+    async def handler_unsub():
         pass
 
     _m = _route.get_match_map()
