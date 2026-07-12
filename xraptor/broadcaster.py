@@ -71,6 +71,8 @@ class Broadcast:
         registered members still connected.
         :return:
         """
+        if self.__task is not None:
+            return  # already open; do not orphan the running tasks
         self.__task = asyncio.create_task(self._listening())  # pylint: disable=E1120
         self.__check_task = asyncio.create_task(self._check())  # pylint: disable=E1120
 
