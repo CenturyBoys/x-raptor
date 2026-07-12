@@ -216,9 +216,12 @@ async def scenario_soak(
     rss_start = read_rss_kb(pid)
     print(f"{'t(s)':>5} {'active':>7} {'requests':>10} {'rss_kb':>9}")
     t0 = time.perf_counter()
+    rss_samples: list[int] = []
     while time.perf_counter() < stop_at:
         metrics = await asyncio.to_thread(read_metrics, host, port)
         rss = read_rss_kb(pid)
+        if rss is not None:
+            rss_samples.append(rss)
         print(
             f"{time.perf_counter() - t0:>5.0f} "
             f"{metrics.get('xraptor_connections_active', 0):>7.0f} "
@@ -234,14 +237,29 @@ async def scenario_soak(
     rss_end = read_rss_kb(pid)
     active_final = metrics.get("xraptor_connections_active", 0)
 
-    delta = (rss_end or 0) - (rss_start or 0)
-    print(f"\nRSS start={rss_start}kB end={rss_end}kB (delta={delta:+}kB)")
+    print(f"\nRSS cold-start={rss_start}kB end={rss_end}kB")
     print(f"active_connections after churn stopped: {active_final:.0f} (expect ~0)")
 
     ok = True
-    if rss_start and rss_end and rss_end > rss_start * 1.5 + 20_000:
-        print("WARN: RSS grew > 50% — possible memory leak")
-        ok = False
+    # Leak check on the STEADY STATE only: drop the first two samples (cold start
+    # + warm-up ramp) and compare the plateau's low-water mark to the last sample.
+    steady = rss_samples[2:]
+    if len(steady) >= 2:
+        baseline = min(steady)
+        latest = steady[-1]
+        growth = (latest - baseline) / baseline if baseline else 0
+        print(
+            f"steady-state RSS: baseline={baseline}kB latest={latest}kB "
+            f"({growth * 100:+.1f}%)"
+        )
+        if growth > 0.25:
+            print("WARN: RSS keeps growing in steady state — possible memory leak")
+            ok = False
+        else:
+            print("OK: RSS plateaued in steady state (no leak signal)")
+    else:
+        print("(soak too short for a steady-state leak verdict — increase --duration)")
+
     if active_final > 2:
         print("WARN: connections not released after churn — possible leak")
         ok = False
