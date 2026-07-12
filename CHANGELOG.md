@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type-checking gate (`mypy`).
 
 ### Added
+- Load/soak test harness (`loadtest/`): a self-contained Python harness that spawns
+  a real server and drives load-ramp, broadcast fan-out and soak/leak scenarios,
+  reporting throughput, latency percentiles, delivery ratio and RSS/connection
+  trends. A tiny `smoke` mode runs as a non-blocking CI sanity check.
 - Observability: built-in `GET /health` (JSON liveness) and `GET /metrics`
   (Prometheus text format) HTTP endpoints served on the same port before the
   WebSocket handshake (paths configurable / disablable). Tracks connections

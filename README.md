@@ -333,3 +333,10 @@ uv run ruff check .          # lint
 uv run ruff format .         # format
 uv run mypy xraptor/         # type check
 ```
+
+Load/soak testing lives in [`loadtest/`](./loadtest/) (run manually):
+
+```shell
+uv run python loadtest/run.py smoke      # quick sanity
+uv run python loadtest/run.py all        # full load-ramp + broadcast + soak
+```
