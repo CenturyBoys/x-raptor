@@ -61,14 +61,19 @@ async def test_check_alive():
     xraptor.XRaptor.set_antenna(MemoryAntenna)
     _b = xraptor.Broadcast.get("a1")
     _a = xraptor.XRaptor.get_antenna()
-    await _a.post("member1", "message")
-    _b.add_member("member1")
+    # An active subscriber makes is_alive("member1") True (matches Redis NUMSUB
+    # semantics: alive == has a live subscriber, not just a posted-to channel).
+    _agen = _a.subscribe("member1")
+    _sub = asyncio.ensure_future(_agen.__anext__())
+    await asyncio.sleep(0)  # let the subscriber register
+    with patch.object(xraptor.Broadcast, "_open"):
+        _b.add_member("member1")
     with pytest.raises(Exception):
         with patch.object(xraptor.Broadcast, "remove_member") as mock_x:
             with patch.object(asyncio, "sleep", side_effect=Exception):
                 await _b._check(antenna=_a, frequency=0)
-    _b._close()
     assert mock_x.called is False
+    _sub.cancel()
 
 
 @pytest.mark.asyncio
