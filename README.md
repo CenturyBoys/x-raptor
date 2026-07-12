@@ -287,6 +287,19 @@ A minimal chat implementation exercising the `sub`, `post` and `unsub` routes
 - Server: [example/server.py](./example/server.py)
 - Client: [example/client.py](./example/client.py)
 
+## 🗓️ Versioning & support
+
+- **SemVer.** While on `0.x`, the public API may change between minor versions —
+  pin a version if you depend on it. See the [CHANGELOG](./CHANGELOG.md).
+- **Python support** follows a [SPEC 0](https://scientific-python.org/specs/spec-0000/)-style
+  policy: a Python version is supported until roughly 3 years after its release.
+  Currently tested on **3.11, 3.12, 3.13 and 3.14**.
+- **Type-checked and typed:** the package ships a `py.typed` marker (PEP 561), so
+  downstream type checkers see its annotations.
+- **Path to 1.0** — the API will be frozen once these are in place: a stable
+  `Antenna` interface, built-in observability (metrics/health), and validation
+  under real-world load.
+
 ## 🛠️ Development
 
 The project uses [uv](https://docs.astral.sh/uv/) and `ruff` + `mypy` + `pytest`.

@@ -74,6 +74,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   intended hook for auth and rate limiting).
 - No built-in metrics/health endpoint yet (observability).
 
+### Maturity
+- Ship a `py.typed` marker (PEP 561) so consumers get the (already mypy-clean) types.
+- Test matrix extended to Python 3.14; document a SPEC 0-style version-support policy
+  and the criteria for a 1.0 API freeze.
+- Add property-based tests (Hypothesis) for the request parser. This surfaced and
+  fixed a robustness gap: `Request.from_message` now raises `ValueError` (not a
+  leaked `TypeError`) when field types are wrong, so the server drops the message
+  instead of dropping the connection.
+
 ### Security
 - Publishing no longer references `PYPI_API_TOKEN` (uses OIDC Trusted Publishing).
   The token is an **organization-level** secret shared by other repos, so it is

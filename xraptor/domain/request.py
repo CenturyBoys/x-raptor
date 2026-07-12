@@ -67,10 +67,15 @@ class Request:
         except KeyError as error:
             raise ValueError(f"unknown method: {message_data['method']!r}") from error
 
-        return cls(
-            request_id=message_data["request_id"],
-            payload=message_data["payload"],
-            header=message_data["header"],
-            route=message_data["route"],
-            method=method,
-        )
+        try:
+            return cls(
+                request_id=message_data["request_id"],
+                payload=message_data["payload"],
+                header=message_data["header"],
+                route=message_data["route"],
+                method=method,
+            )
+        except TypeError as error:
+            # wrong field types (e.g. numeric request_id) -> uniform ValueError so
+            # the server drops the message instead of leaking TypeError upward.
+            raise ValueError(f"invalid request field type: {error}") from error
