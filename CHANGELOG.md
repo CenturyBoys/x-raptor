@@ -16,7 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expanded Ruff ruleset (`E,W,F,I,UP,B,SIM,C4,ASYNC,RUF`) and added a static
   type-checking gate (`mypy`).
 
+### Added
+- Graceful shutdown: `serve()` now runs until `stop()` is called or SIGTERM/SIGINT
+  is received, then closes the server and its connections cleanly (replaces the
+  busy `while True: sleep` loop).
+
 ### Fixed
+- Connection listener tasks no longer spin forever when the peer is gone (break on
+  `ConnectionClosed`) and are wired to a done-callback so unexpected failures are
+  logged instead of swallowed.
+- Expected client disconnects (`ConnectionClosed`) are logged at debug level without
+  a traceback instead of as errors.
 - **MemoryAntenna**: removed the singleton so one subscriber's `stop_listening()`
   no longer kills every other subscriber; replaced the 50ms busy-poll with an
   event-driven queue; fixed `is_alive` to reflect active subscribers; and removed
@@ -38,9 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Annotated shared class state with `typing.ClassVar`.
 
 ### Known limitations (deferred)
-- Graceful shutdown of the server loop (SIGTERM/SIGINT + task cancellation) — Phase 3.
 - `Broadcast.remove_member`/`_close` cancel tasks fire-and-forget (kept sync to avoid
   breaking the public API); awaiting cancellation would require an async API.
+- Payload size limits, request schema validation and rate limiting — Phase 4.
 
 ### Notes
 - Manual one-time setup still required on the hosting side: create the GitHub

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import re
+import signal
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import ClassVar, Self
@@ -37,6 +38,7 @@ class XRaptor:
         self._ip = ip_address
         self._port = port
         self._server = None
+        self._stop_event: asyncio.Event | None = None
 
     @classmethod
     def set_antenna(cls, antenna: type[Antenna]):
@@ -90,15 +92,29 @@ class XRaptor:
 
     async def serve(self):
         """
-        start serve
+        start serve until stop() is called (or SIGTERM/SIGINT is received),
+        then shut down gracefully closing the server and its connections.
         :return:
         """
+        self._stop_event = asyncio.Event()
         async with serve(self._watch, self._ip, self._port) as server:
             self._server = server
-            # TODO(fase-3): substituir por graceful shutdown com asyncio.Event
-            # + handlers de SIGTERM/SIGINT que cancelam as tasks de conexão.
-            while True:  # noqa: ASYNC110
-                await asyncio.sleep(10)
+            self._install_signal_handlers()
+            await self._stop_event.wait()
+
+    def _install_signal_handlers(self) -> None:
+        loop = asyncio.get_running_loop()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            try:
+                loop.add_signal_handler(sig, self.stop)
+            except (NotImplementedError, RuntimeError):
+                # signal handlers may be unavailable (e.g. Windows, non-main thread)
+                logging.debug("could not install signal handler for %s", sig)
+
+    def stop(self) -> None:
+        """Signal the serve() loop to shut down gracefully."""
+        if self._stop_event is not None:
+            self._stop_event.set()
 
     @classmethod
     def register(cls, name: str) -> Route:
@@ -185,8 +201,9 @@ class XRaptor:
         try:
             async for message in connection.ws_server:
                 await XRaptor._handle_request(message, connection)
-        except websockets.exceptions.ConnectionClosed as error:
-            logging.exception(error)
+        except websockets.exceptions.ConnectionClosed:
+            # expected when a client disconnects — not an error, no traceback
+            logging.debug("connection closed by peer")
             close_code = CloseCode.GOING_AWAY
         except websockets.exceptions.InvalidHandshake as error:
             logging.exception(error)

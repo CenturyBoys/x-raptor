@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -82,3 +83,18 @@ def test_register_no_duplicates():
     _r2 = xraptor.XRaptor.register(name)
     assert _r1 is _r2
     assert xraptor.XRaptor._routes.count(_r1) == 1
+
+
+def test_stop_without_serve_is_noop():
+    _s = xraptor.XRaptor("localhost", 0)
+    _s.stop()  # no serve() running yet -> must not raise
+
+
+@pytest.mark.asyncio
+async def test_serve_graceful_stop():
+    _s = xraptor.XRaptor("localhost", 0)  # port 0 -> OS picks a free port
+    _task = asyncio.ensure_future(_s.serve())
+    await asyncio.sleep(0.05)  # let the server bind
+    _s.stop()
+    # serve() must return promptly once stop() is signaled.
+    await asyncio.wait_for(_task, timeout=2)
