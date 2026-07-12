@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable connection limits on `XRaptor(...)`: `max_size` (inbound payload cap,
   DoS guard), `max_queue` (per-connection backpressure), `ping_interval`/`ping_timeout`
   (keepalive), forwarded to the websockets server with safe defaults.
+- End-to-end integration tests (real server + real websockets client): GET round-trip,
+  SUB streaming, concurrent connections, unsubscribe isolation and graceful shutdown.
+  CI enforces a coverage gate (`--cov-fail-under=85`).
 
 ### Fixed
 - `Request.from_message` now raises a clear `ValueError` on malformed input
