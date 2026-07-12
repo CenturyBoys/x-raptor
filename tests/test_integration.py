@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import urllib.request
 
 import pytest
 import pytest_asyncio
@@ -110,6 +111,36 @@ async def test_concurrent_connections(server_port):
 
     results = await asyncio.gather(*[round_trip(i) for i in range(10)])
     assert sorted(results) == sorted(f"p{i}" for i in range(10))
+
+
+def _http_get(port: int, path: str) -> tuple[int, str]:
+    with urllib.request.urlopen(f"http://localhost:{port}{path}", timeout=2) as resp:
+        return resp.status, resp.read().decode()
+
+
+@pytest.mark.asyncio
+async def test_health_endpoint(server_port):
+    _server, port = server_port
+    status, body = await asyncio.to_thread(_http_get, port, "/health")
+    assert status == 200
+    data = json.loads(body)
+    assert data["status"] == "ok"
+    assert "uptime_seconds" in data
+    assert "active_connections" in data
+
+
+@pytest.mark.asyncio
+async def test_metrics_endpoint(server_port):
+    _server, port = server_port
+    # generate some traffic so counters are non-zero
+    async with websockets.connect(f"ws://localhost:{port}") as ws:
+        await ws.send(_msg("m1", "/echo", "GET", payload="x"))
+        await asyncio.wait_for(ws.recv(), timeout=2)
+    status, body = await asyncio.to_thread(_http_get, port, "/metrics")
+    assert status == 200
+    assert "# TYPE xraptor_requests_total counter" in body
+    assert "xraptor_connections_total" in body
+    assert "xraptor_uptime_seconds" in body
 
 
 @pytest.mark.asyncio

@@ -224,6 +224,28 @@ class Broadcast:
         """remove a member; closes the room when the last one leaves"""
 ```
 
+## 📊 Observability
+
+The server exposes two HTTP endpoints on the same port (intercepted before the
+WebSocket handshake), enabled by default:
+
+- **`GET /health`** — JSON liveness for load balancers:
+  `{"status": "ok", "uptime_seconds": ..., "active_connections": ...}`.
+- **`GET /metrics`** — Prometheus text format: `xraptor_connections_total`,
+  `xraptor_connections_active`, `xraptor_requests_total`,
+  `xraptor_request_errors_total`, `xraptor_uptime_seconds`.
+
+Paths are configurable (or set to `None` to disable); counters are also readable
+in-process via `XRaptor.get_metrics()`.
+
+```python
+_xraptor = xraptor.XRaptor(
+    "localhost", 8765,
+    health_path="/health",   # None to disable
+    metrics_path="/metrics",  # None to disable
+)
+```
+
 ## ⚡ Performance
 
 - Request/response (de)serialization uses [orjson](https://github.com/ijl/orjson).

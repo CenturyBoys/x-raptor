@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type-checking gate (`mypy`).
 
 ### Added
+- Observability: built-in `GET /health` (JSON liveness) and `GET /metrics`
+  (Prometheus text format) HTTP endpoints served on the same port before the
+  WebSocket handshake (paths configurable / disablable). Tracks connections
+  (total/active), requests, request errors and uptime; also exposed in-process via
+  `XRaptor.get_metrics()`.
 - Graceful shutdown: `serve()` now runs until `stop()` is called or SIGTERM/SIGINT
   is received, then closes the server and its connections cleanly (replaces the
   busy `while True: sleep` loop).
@@ -72,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   breaking the public API); awaiting cancellation would require an async API.
 - No built-in rate limiting: implement it as a middleware (the middleware chain is the
   intended hook for auth and rate limiting).
-- No built-in metrics/health endpoint yet (observability).
+- No load/soak testing yet (the remaining step toward "operational" maturity).
 
 ### Maturity
 - Ship a `py.typed` marker (PEP 561) so consumers get the (already mypy-clean) types.

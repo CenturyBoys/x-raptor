@@ -4,9 +4,11 @@ import re
 import signal
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import ClassVar, Self
 from uuid import uuid4
 
+import orjson
 import websockets
 import witch_doctor
 from websockets import serve
@@ -17,6 +19,7 @@ from xraptor.core.interfaces import Antenna
 from xraptor.domain.methods import MethodType
 from xraptor.domain.response import Response
 from xraptor.domain.route import Route
+from xraptor.observability import Metrics
 
 from .domain.request import Request
 
@@ -33,6 +36,7 @@ class XRaptor:
     _map: ClassVar[dict] = {}
     _antenna_cls: ClassVar[type[Antenna] | None] = None
     _middlewares: ClassVar[list[MiddlewareConfig]] = []
+    _metrics: ClassVar[Metrics] = Metrics()
 
     def __init__(
         self,
@@ -43,17 +47,23 @@ class XRaptor:
         max_queue: int | None = 32,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
+        health_path: str | None = "/health",
+        metrics_path: str | None = "/metrics",
     ):
         """
         :param max_size: max inbound message size in bytes (DoS guard; None disables)
         :param max_queue: max buffered inbound messages per connection (backpressure)
         :param ping_interval: keepalive ping interval in seconds (None disables)
         :param ping_timeout: keepalive ping timeout in seconds
+        :param health_path: HTTP path serving a JSON health check (None disables)
+        :param metrics_path: HTTP path serving Prometheus metrics (None disables)
         """
         self._ip = ip_address
         self._port = port
         self._server = None
         self._stop_event: asyncio.Event | None = None
+        self._health_path = health_path
+        self._metrics_path = metrics_path
         self._serve_options: dict = {
             "max_size": max_size,
             "max_queue": max_queue,
@@ -118,12 +128,38 @@ class XRaptor:
         :return:
         """
         self._stop_event = asyncio.Event()
+        XRaptor._metrics = Metrics()  # reset counters/uptime for this run
         async with serve(
-            self._watch, self._ip, self._port, **self._serve_options
+            self._watch,
+            self._ip,
+            self._port,
+            process_request=self._process_request,
+            **self._serve_options,
         ) as server:
             self._server = server
             self._install_signal_handlers()
             await self._stop_event.wait()
+
+    async def _process_request(self, path: str, request_headers):
+        """Serve the health/metrics HTTP endpoints before the WebSocket handshake.
+
+        Returning a response tuple short-circuits the upgrade; returning None lets
+        the connection proceed as a normal WebSocket.
+        """
+        route = path.split("?", 1)[0]
+        if self._health_path is not None and route == self._health_path:
+            body = orjson.dumps(XRaptor._metrics.health())
+            return HTTPStatus.OK, [("Content-Type", "application/json")], body
+        if self._metrics_path is not None and route == self._metrics_path:
+            body = XRaptor._metrics.prometheus().encode()
+            headers = [("Content-Type", "text/plain; version=0.0.4; charset=utf-8")]
+            return HTTPStatus.OK, headers, body
+        return None
+
+    @classmethod
+    def get_metrics(cls) -> Metrics:
+        """Return the live server metrics (connections, requests, errors, uptime)."""
+        return cls._metrics
 
     def _install_signal_handlers(self) -> None:
         loop = asyncio.get_running_loop()
@@ -240,6 +276,8 @@ class XRaptor:
     @staticmethod
     async def _watch(websocket: websockets.WebSocketServerProtocol):
         connection = Connection.from_ws(websocket)
+        XRaptor._metrics.connections_total += 1
+        XRaptor._metrics.connections_active += 1
         close_code: CloseCode = CloseCode.NORMAL_CLOSURE
         try:
             async for message in connection.ws_server:
@@ -258,6 +296,7 @@ class XRaptor:
             logging.exception(error)
             close_code = CloseCode.ABNORMAL_CLOSURE
         finally:
+            XRaptor._metrics.connections_active -= 1
             await connection.close(close_code=close_code)
             del connection
 
@@ -267,9 +306,11 @@ class XRaptor:
             request = Request.from_message(message)
         except ValueError as error:
             # client-side malformed input — drop it without a server-side traceback
+            XRaptor._metrics.request_errors_total += 1
             logging.warning("dropping malformed request: %s", error)
             return
 
+        XRaptor._metrics.requests_total += 1
         try:
             middleware_result = await XRaptor._run_middlewares(request, connection)
             if middleware_result is not None:
@@ -297,6 +338,7 @@ class XRaptor:
                 ).json()
             )
         except Exception as error:  # pylint: disable=W0718
+            XRaptor._metrics.request_errors_total += 1
             logging.exception(error)
             _response = Response.create(
                 request_id=request.request_id,
