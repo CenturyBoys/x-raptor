@@ -14,7 +14,7 @@ def test_set_antenna_wrong_type():
     class Stub:
         pass
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         xraptor.XRaptor.set_antenna(Stub)
 
 
@@ -74,3 +74,11 @@ def test_route_matcher():
     _s.load_routes()
     _fn = _s.route_matcher(MethodType.GET, "/test")
     assert _fn
+
+
+def test_register_no_duplicates():
+    name = f"/{uuid4()}"
+    _r1 = xraptor.XRaptor.register(name)
+    _r2 = xraptor.XRaptor.register(name)
+    assert _r1 is _r2
+    assert xraptor.XRaptor._routes.count(_r1) == 1

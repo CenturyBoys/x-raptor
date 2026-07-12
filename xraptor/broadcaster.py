@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from asyncio import Task
 from typing import ClassVar
 
@@ -81,12 +82,17 @@ class Broadcast:
         :return:
         """
         while True:
-            _to_check = [*self.__members]
-            _status = await asyncio.gather(*[antenna.is_alive(i) for i in _to_check])
-            _ = [
-                None if is_alive else self.remove_member(_to_check[index])
-                for index, is_alive in enumerate(_status)
-            ]
+            members = list(self.__members)  # snapshot: remove_member mutates it
+            statuses = await asyncio.gather(
+                *[antenna.is_alive(i) for i in members],
+                return_exceptions=True,
+            )
+            for member, alive in zip(members, statuses, strict=True):
+                if isinstance(alive, Exception):
+                    logging.warning("is_alive check failed for %s: %r", member, alive)
+                    continue
+                if not alive:
+                    self.remove_member(member)
             await asyncio.sleep(frequency)
 
     @witch_doctor.WitchDoctor.injection
@@ -97,4 +103,11 @@ class Broadcast:
         :return:
         """
         async for data in antenna.subscribe(self.__broadcast_id):
-            await asyncio.gather(*[antenna.post(i, data) for i in self.__members])
+            members = list(self.__members)  # snapshot before awaiting the fan-out
+            results = await asyncio.gather(
+                *[antenna.post(i, data) for i in members],
+                return_exceptions=True,
+            )
+            for member, result in zip(members, results, strict=True):
+                if isinstance(result, Exception):
+                    logging.warning("broadcast post failed for %s: %r", member, result)

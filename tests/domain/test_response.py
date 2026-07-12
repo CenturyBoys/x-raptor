@@ -27,7 +27,7 @@ def test_check_type(attr_with_wrong_type):
         "method": MethodType.POST,
     }
     _r.update(attr_with_wrong_type)
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         Response(**_r)
 
 

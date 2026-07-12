@@ -54,9 +54,8 @@ class XRaptor:
         load oic container with the registered antenna implementation
         :return:
         """
-        assert issubclass(
-            cls._antenna_cls, Antenna
-        ), f"antenna is not subtype of {Antenna}"
+        if cls._antenna_cls is None or not issubclass(cls._antenna_cls, Antenna):
+            raise TypeError(f"antenna is not subtype of {Antenna}")
         _container_name = str(uuid4())
         container = witch_doctor.WitchDoctor.container(_container_name)
         container(
@@ -109,8 +108,11 @@ class XRaptor:
         :param name: route name
         :return:
         """
+        # Route is a singleton per name (meeseeks.OnlyOne), so re-registering the
+        # same path returns the same object — avoid appending duplicates.
         _route = Route(name)
-        cls._routes.append(_route)
+        if _route not in cls._routes:
+            cls._routes.append(_route)
         return _route
 
     @classmethod
