@@ -12,51 +12,108 @@
 By: CenturyBoys
 ```
 
-## ⚠️ Fast as a hell, CAUTION!!!
+Fast as a WebSocket, easy as HTTP. X-raptor is an abstraction over the
+[websockets](https://pypi.org/project/websockets/) package that lets you register
+`get`, `post`, `put`, `sub` and `unsub` asynchronous handlers with HTTP-like route
+registration. Every message on the wire is a **request** or a **response** object.
 
-This package is being developed and is in the testing process. **🚨 NOT USE THIS PACKAGE IN PRODUCTION !!!**
+To allow multiple asynchronous responses per route, X-raptor uses each
+`request_id` as an **antenna** — a pubsub channel that `yield`s string messages
+back to the client.
 
-Fast as websocket easy as http, this package is an abstraction of [websockets](https://pypi.org/project/websockets/)
-package
-to allow user to register `get`, `post`, `sub`, `unsub` asynchronous callbacks. For this all message must be a requests
-or a response object.
+> ⚠️ **Pre-1.0:** the public API may still change between minor versions. Pin a
+> version if you depend on it.
 
-To allow multiple asynchronous responses on routes X-raptor use the `request_id` as antenna. Those antennas are pubsub
-channels that `yield` string messages.
+## 📦 Installation
 
-### Registering a route
+```shell
+pip install xraptor
+# or with uv
+uv add xraptor
+```
 
-To register a route you can use the `xraptor.XRaptor.register` to get the route instance and use
-the `as_` (`as_get`, `as_post`, `as_sub`, `as_unsub`,) decorator. See below an example
+Optional [extras](#-extras): `redis_version` (Redis antenna) and `uvloop` (faster
+event loop).
+
+## 🚀 Quick start
+
+Register a route with the `as_<method>` decorators, then load the routes and serve:
 
 ```python
+import asyncio
+
 import xraptor
 
 
 @xraptor.XRaptor.register("/send_message_to_chat_room").as_post
-async def send_message(
-        request: xraptor.Request
-) -> xraptor.Response:
-    ...
+async def send_message(request: xraptor.Request) -> xraptor.Response:
+    return xraptor.Response.create(
+        request_id=request.request_id,
+        header={},
+        payload='{"ok": true}',
+        method=request.method,
+    )
+
+
+_xraptor = xraptor.XRaptor("localhost", 8765)
+_xraptor.set_antenna(xraptor.antennas.MemoryAntenna)
+
+asyncio.run(_xraptor.load_routes().serve())
 ```
 
-### Start server
+Routes are registered at import time with the decorators
+(`as_get`, `as_post`, `as_put`, `as_sub`, `as_unsub`), then loaded into the server
+with `load_routes()`.
+
+## 📨 Message format
+
+Every inbound message is a **request** and every outbound message is a **response**,
+both JSON objects. `payload` is always a string (usually JSON-encoded).
+
+**Request**
+
+```json
+{
+  "request_id": "01H...",
+  "payload": "{\"text\": \"hello\"}",
+  "header": {"token": "..."},
+  "route": "/send_message_to_chat_room",
+  "method": "POST"
+}
+```
+
+**Response**
+
+```json
+{
+  "request_id": "01H...",
+  "payload": "{\"ok\": true}",
+  "header": {},
+  "method": "POST"
+}
+```
+
+`method` is case-insensitive on the way in. Unmatched routes get a
+`{"message": "Not registered"}` response; malformed messages are dropped.
+
+## 🖥️ Start server
 
 ```python
-import xraptor
 import asyncio
+
+import xraptor
 
 _xraptor = xraptor.XRaptor("localhost", 8765)
 
 xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
-
 _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
 
 asyncio.run(_xraptor.load_routes().serve())
 ```
 
 `serve()` runs until `stop()` is called or a `SIGTERM`/`SIGINT` is received, then
-shuts down gracefully. Connection limits can be tuned on the constructor:
+shuts down gracefully (closing the server and its connections). Connection limits
+can be tuned on the constructor:
 
 ```python
 _xraptor = xraptor.XRaptor(
@@ -69,16 +126,15 @@ _xraptor = xraptor.XRaptor(
 )
 ```
 
-> **Auth & rate limiting** are not built in — implement them as
-> [middleware](#-middleware) (the chain runs before every handler and can
-> short-circuit a request).
+## 🔗 Middleware
 
-### 🔗 Middleware
-
-X-raptor supports middleware functions that run before route handlers. Middlewares can inspect/modify requests, short-circuit responses, or perform cross-cutting concerns like authentication and logging.
+Middleware functions run before route handlers. They can inspect/modify requests,
+short-circuit responses, or handle cross-cutting concerns like **authentication**
+and **rate limiting** (there is no built-in auth or rate limiting — this is the hook).
 
 ```python
 import xraptor
+
 
 @xraptor.XRaptor.middleware(priority=1)
 async def auth_middleware(request: xraptor.Request, connection) -> xraptor.Response | None:
@@ -89,162 +145,133 @@ async def auth_middleware(request: xraptor.Request, connection) -> xraptor.Respo
             payload='{"error": "unauthorized"}',
             method=request.method,
         )
-    return None  # Continue to next middleware/handler
+    return None  # continue to the next middleware/handler
 ```
 
-**Priority**: Lower numbers run first. Each priority must be unique.
-
-**Pattern matching**: Optionally restrict middleware to specific routes using regex:
+- **Priority**: lower numbers run first; each priority must be unique.
+- **Pattern matching**: restrict a middleware to routes with an optional regex.
+- **Short-circuiting**: return a `Response` to stop the chain and skip the handler;
+  return `None` to continue.
 
 ```python
 @xraptor.XRaptor.middleware(priority=2, pattern=r"^/api/.*")
 async def api_only_middleware(request, connection):
-    # Only runs for routes starting with /api/
+    # only runs for routes starting with /api/
     return None
 ```
 
-**Short-circuiting**: Return a `Response` to stop the chain and skip the route handler. Return `None` to continue.
+## 📡 Antenna
 
-### 📡 Antenna
-
-There is a default antenna (that use memory queue) configuration but is not recommended to use, you have two options
-implements your own antenna class using the [interface](./xraptor/core/interfaces.py)
-or use one of the extra packages.
+An antenna is the pubsub backend. There is a default in-memory antenna (not
+recommended for production); you can implement your own against the
+[interface](./xraptor/core/interfaces.py) or use one of the extras.
 
 ```python
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator
 
 
 class Antenna(ABC):
+    @abstractmethod
+    def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
+        """async generator that yields messages from the channel"""
 
     @abstractmethod
-    def subscribe(self, key: str) -> AsyncIterator[str]:
-        """
-        async generator that will yield message from the key's channel 
-        :param key: pubsub channel
-        :return: str message async generator
-        """
-    
-    @abstractmethod
-    async def stop_listening(self):
-        """
-        stop listening messages
-        :param antenna_id: pubsub channel
-        :return:
-        """
+    async def stop_listening(self) -> None:
+        """stop listening for messages on this subscription"""
 
     @abstractmethod
-    def post(self, key: str, message: str) -> Awaitable:
-        """
-        async function that will publish a message to a key's channel 
-        :param key: pubsub channel
-        :param message: message
-        :return: 
-        """
+    async def post(self, antenna_id: str, message: str) -> None:
+        """publish a message to a channel"""
 
     @abstractmethod
-    def is_alive(self, antenna_id: str) -> Awaitable[bool]:
-        """
-        verify that antenna_id still alive
-        :param antenna_id:
-        :return:
-        """
+    async def is_alive(self, antenna_id: str) -> bool:
+        """whether the channel still has an active subscriber"""
 
     @classmethod
     @abstractmethod
-    def set_config(cls, config: dict):
-        """
-        set config map for this antenna
-        :param config:
-        :return:
-        """
+    def set_config(cls, config: dict) -> None:
+        """set the config map for this antenna"""
 ```
 
-### 📤 Broadcast
+Built-in implementations: `xraptor.antennas.MemoryAntenna` (in-memory, single
+process) and `xraptor.antennas.RedisAntenna` (Redis pubsub, via the
+`redis_version` extra).
 
-The library provides a broadcast room implementation that enables users to register and receive messages within a shared
-space. This functionality is similar to a chat room where multiple users can join and automatically receive all messages
-posted without requiring constant polling.
+## 📤 Broadcast
 
-This broadcast implementation use the registered antenna to handle request and (un)subscriptions
+A broadcast room lets multiple members join a shared space and automatically
+receive every message posted to it — like a chat room, without polling. It is
+built on the registered antenna and auto-cleans disconnected members.
 
 ```python
-from typing import Self
-
-
 class Broadcast:
     @classmethod
-    def get(cls, broadcast_id: str) -> Self:
-        """
-        correct way to get a broadcast instance
-        :param broadcast_id: string identifier
-        :return: Broadcast object instance
-        """
+    def get(cls, broadcast_id: str) -> "Broadcast":
+        """get (or create) a broadcast instance by id"""
 
     def add_member(self, member: str):
-        """
-        add member on this chat room and if is the first to coming in, will open the room.
-        :param member: member is an antenna id coming from request
-        :return:
-        """
+        """add a member (antenna id); opens the room on the first member"""
 
     def remove_member(self, member: str):
-        """
-        remove member from this chat room and if is the last to coming out, will close the room.
-        :param member: member is an antenna id coming from request
-        :return:
-        """
+        """remove a member; closes the room when the last one leaves"""
 ```
 
-### Extras
+## ⚡ Performance
 
-#### Redis
+- Request/response (de)serialization uses [orjson](https://github.com/ijl/orjson).
+- Install the `uvloop` extra and start the server with `XRaptor.run()` to use
+  [uvloop](https://github.com/MagicStack/uvloop) when available (falling back to
+  asyncio otherwise):
 
-This extra add the redis [package](https://pypi.org/project/redis/) in version `^5.0.8`.
+```python
+_xraptor.load_routes().run()   # uvloop if installed, else asyncio.run
+```
 
-How to install extra packages?
+## 🧩 Extras
+
+### Redis
+
+Adds the [redis](https://pypi.org/project/redis/) package for the Redis antenna.
 
 ```shell
 pip install 'xraptor[redis_version]'
-# or with uv
+# or
 uv add 'xraptor[redis_version]'
 ```
 
-Redis antenna need string connection that you will configure on his antenna using the `set_config`.
+Configure the connection string on the antenna via `set_config`:
 
 ```python
 import xraptor
 
-...
-
 xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
-
-...
 ```
 
-#### uvloop
+### uvloop
 
-Optional faster event loop for the asyncio server. Install the extra and use
-`XRaptor.run()` (it uses uvloop when available, otherwise falls back to asyncio):
+Optional faster event loop (excluded on Windows).
 
 ```shell
 pip install 'xraptor[uvloop]'
 ```
 
-```python
-import xraptor
+## 🧮 Full example
 
-_xraptor = xraptor.XRaptor("localhost", 8765)
-_xraptor.set_antenna(xraptor.antennas.MemoryAntenna)
-_xraptor.load_routes().run()   # uvloop if installed, else asyncio
+A minimal chat implementation exercising the `sub`, `post` and `unsub` routes
+(uses the `redis_version` extra):
+
+- Server: [example/server.py](./example/server.py)
+- Client: [example/client.py](./example/client.py)
+
+## 🛠️ Development
+
+The project uses [uv](https://docs.astral.sh/uv/) and `ruff` + `mypy` + `pytest`.
+
+```shell
+uv sync --all-extras --dev   # install
+uv run pytest                # tests (with coverage)
+uv run ruff check .          # lint
+uv run ruff format .         # format
+uv run mypy xraptor/         # type check
 ```
-
-## 🧮 Full Example
-
-A very simple chat implementation was created to test `sub`, `poss` and `unsub` routes.
-
-The test work using the `redis_edition`.
-
-- The [server.py](./example/server.py) implementation can be found here.
-- The [client.py](./example/client.py) implementation can be found here.
