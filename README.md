@@ -194,9 +194,16 @@ class Antenna(ABC):
         """set the config map for this antenna"""
 ```
 
-Built-in implementations: `xraptor.antennas.MemoryAntenna` (in-memory, single
-process) and `xraptor.antennas.RedisAntenna` (Redis pubsub, via the
-`redis_version` extra).
+Built-in implementations:
+
+- `xraptor.antennas.MemoryAntenna` — in-memory, single process (default).
+- `xraptor.antennas.RedisAntenna` — Redis pubsub (via the `redis_version` extra).
+- `xraptor.antennas.NatsAntenna` — NATS core pubsub (via the `nats` extra).
+
+> `is_alive` (used by `Broadcast` to prune dead members) needs a per-channel
+> subscriber count, which only Redis exposes natively. On NATS it always returns
+> `True`, so member cleanup relies on the connection layer (websocket keepalive +
+> disconnect) instead.
 
 ## 📤 Broadcast
 
@@ -246,6 +253,22 @@ Configure the connection string on the antenna via `set_config`:
 import xraptor
 
 xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
+```
+
+### NATS
+
+Adds [nats-py](https://pypi.org/project/nats-py/) for the NATS antenna.
+
+```shell
+pip install 'xraptor[nats]'
+# or
+uv add 'xraptor[nats]'
+```
+
+```python
+import xraptor
+
+xraptor.antennas.NatsAntenna.set_config({"servers": "nats://localhost:4222"})
 ```
 
 ### uvloop

@@ -16,3 +16,13 @@ try:
     __all__ += ["ConfigAntenna", "RedisAntenna"]
 except ImportError:  # pragma: no cover
     pass
+
+# NATS extra
+try:
+    import nats  # noqa: F401
+
+    from .nats import ConfigNatsAntenna, NatsAntenna
+
+    __all__ += ["ConfigNatsAntenna", "NatsAntenna"]
+except ImportError:  # pragma: no cover
+    pass

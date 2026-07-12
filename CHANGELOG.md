@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CI enforces a coverage gate (`--cov-fail-under=85`).
 - Optional `uvloop` extra plus `XRaptor.run()` convenience entrypoint that uses uvloop
   when installed and falls back to the stdlib asyncio loop otherwise.
+- `NatsAntenna` (via the `nats` extra): NATS core pubsub backend sharing a single
+  connection across DI instances. Note: `is_alive` always returns `True` (NATS core
+  has no per-subject subscriber count), so `Broadcast` pruning relies on the
+  connection layer for this backend.
 
 ### Fixed
 - `Request.from_message` now raises a clear `ValueError` on malformed input
