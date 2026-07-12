@@ -70,7 +70,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   intended hook for auth and rate limiting).
 - No built-in metrics/health endpoint yet (observability).
 
+### Security
+- Publishing no longer references `PYPI_API_TOKEN` (uses OIDC Trusted Publishing).
+  The token is an **organization-level** secret shared by other repos, so it is
+  left in place — this repo simply stops using it.
+- Bumped vulnerable dev/tooling dependencies flagged by Dependabot (all dev-only,
+  not shipped to library users): `pytest` (>=9.0.3), `pytest-asyncio` (1.x),
+  `filelock` (>=3.20.3), `virtualenv` (>=20.36.1). The pytest-asyncio bump also
+  removes the deprecated event-loop-policy warnings.
+
 ### Notes
 - Manual one-time setup still required on the hosting side: create the GitHub
-  `pypi` environment, configure the PyPI Trusted Publisher, enable Codecov for the
-  repo, and remove the old `PYPI_API_TOKEN` secret.
+  `pypi` environment, configure the PyPI Trusted Publisher, and enable Codecov
+  for the repo.
