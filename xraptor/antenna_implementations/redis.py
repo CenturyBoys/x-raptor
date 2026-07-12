@@ -1,5 +1,6 @@
 import logging
-from typing import AsyncIterator, TypedDict
+from collections.abc import AsyncIterator
+from typing import ClassVar, TypedDict
 
 import redis.asyncio as redis
 
@@ -7,11 +8,13 @@ from xraptor.core.interfaces import Antenna
 
 
 class ConfigAntenna(TypedDict):
+    """Formato esperado da config do RedisAntenna (passado em set_config)."""
+
     url: str
 
 
 class RedisAntenna(Antenna):
-    _config: ConfigAntenna = {}
+    _config: ClassVar[dict] = {}
 
     def __init__(self):
         try:
@@ -44,5 +47,5 @@ class RedisAntenna(Antenna):
         return bool(num_subscribers[1])
 
     @classmethod
-    def set_config(cls, config: ConfigAntenna):
+    def set_config(cls, config: dict) -> None:
         cls._config = config

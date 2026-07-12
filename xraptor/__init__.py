@@ -5,4 +5,4 @@ from .domain.request import Request
 from .domain.response import Response
 from .server import XRaptor
 
-__all__ = ["XRaptor", "antennas", "Request", "Response", "Broadcast", "MethodType"]
+__all__ = ["Broadcast", "MethodType", "Request", "Response", "XRaptor", "antennas"]

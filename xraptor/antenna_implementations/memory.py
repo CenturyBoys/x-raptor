@@ -1,6 +1,7 @@
 import asyncio
 from asyncio import Queue
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
+from typing import ClassVar
 
 import meeseeks
 
@@ -9,13 +10,13 @@ from xraptor.core.interfaces import Antenna
 
 @meeseeks.OnlyOne()
 class MemoryAntenna(Antenna):
-    _queues = {}
-    _config = {}
+    _queues: ClassVar[dict[str, Queue]] = {}
+    _config: ClassVar[dict] = {}
 
     def __init__(self):
         self._running = True
 
-    async def subscribe(self, antenna_id: str) -> AsyncIterator:
+    async def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
         if antenna_id not in self._queues:
             self._queues.update({antenna_id: Queue()})
         _q: Queue = self._queues[antenna_id]

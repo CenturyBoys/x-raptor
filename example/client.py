@@ -62,7 +62,7 @@ def chat():
         _t = threading.Thread(target=chat_message_loop)
         _t.start()
 
-        print(f"Start chat: {str(chat_id)}")
+        print(f"Start chat: {chat_id!s}")
         while True:
             try:
                 text = input()

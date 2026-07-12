@@ -1,6 +1,6 @@
 import asyncio
 from asyncio import Task
-from typing import Self
+from typing import ClassVar
 
 import witch_doctor
 
@@ -12,7 +12,7 @@ class Broadcast:
     __members: list[str]
     __task: Task | None
     __check_task: Task | None
-    _broadcasts: dict[str, Self] = {}
+    _broadcasts: ClassVar[dict[str, "Broadcast"]] = {}
 
     def __init__(self, broadcast_id: str):
         self.__broadcast_id = broadcast_id
@@ -21,7 +21,7 @@ class Broadcast:
         self.__check_task = None
 
     @classmethod
-    def get(cls, broadcast_id: str) -> Self:
+    def get(cls, broadcast_id: str) -> "Broadcast":
         """
         correct way to get a broadcast instance
         :param broadcast_id: string identifier
@@ -29,7 +29,7 @@ class Broadcast:
         """
         if cls._broadcasts.get(broadcast_id) is None:
             cls._broadcasts.update({broadcast_id: Broadcast(broadcast_id)})
-        return cls._broadcasts.get(broadcast_id)
+        return cls._broadcasts[broadcast_id]
 
     @classmethod
     def _delete(cls, broadcast_id: str):

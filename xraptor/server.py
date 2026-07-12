@@ -1,8 +1,9 @@
 import asyncio
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Self, Callable, Type, Awaitable
+from typing import ClassVar, Self
 from uuid import uuid4
 
 import websockets
@@ -15,6 +16,7 @@ from xraptor.core.interfaces import Antenna
 from xraptor.domain.methods import MethodType
 from xraptor.domain.response import Response
 from xraptor.domain.route import Route
+
 from .domain.request import Request
 
 
@@ -26,10 +28,10 @@ class MiddlewareConfig:
 
 
 class XRaptor:
-    _routes: list[Route] = []
-    _map: dict = {}
-    _antenna_cls: Type[object] = None
-    _middlewares: list[MiddlewareConfig] = []
+    _routes: ClassVar[list[Route]] = []
+    _map: ClassVar[dict] = {}
+    _antenna_cls: ClassVar[type[Antenna] | None] = None
+    _middlewares: ClassVar[list[MiddlewareConfig]] = []
 
     def __init__(self, ip_address: str, port: int):
         self._ip = ip_address
@@ -37,7 +39,7 @@ class XRaptor:
         self._server = None
 
     @classmethod
-    def set_antenna(cls, antenna: Type[Antenna]):
+    def set_antenna(cls, antenna: type[Antenna]):
         """
         set new antenna implementation
         :param antenna: class that implements all Antenna methods
@@ -70,7 +72,8 @@ class XRaptor:
         return the current antenna implementation
         :return: Antenna object instance
         """
-        return cls._get_antenna()  # pylint: disable=E1120
+        # witch_doctor não tem stubs; a injeção retorna Any em tempo de type-check
+        return cls._get_antenna()  # type: ignore[no-any-return]  # pylint: disable=E1120
 
     @classmethod
     @witch_doctor.WitchDoctor.injection
@@ -93,7 +96,9 @@ class XRaptor:
         """
         async with serve(self._watch, self._ip, self._port) as server:
             self._server = server
-            while True:
+            # TODO(fase-3): substituir por graceful shutdown com asyncio.Event
+            # + handlers de SIGTERM/SIGINT que cancelam as tasks de conexão.
+            while True:  # noqa: ASYNC110
                 await asyncio.sleep(10)
 
     @classmethod
@@ -240,11 +245,14 @@ class XRaptor:
 
     @staticmethod
     async def _subscribe(
-        request: Request, connection: Connection, func: Callable
-    ) -> Awaitable[Response | None]:
+        request: Request,
+        connection: Connection,
+        func: Callable[[Request], Awaitable[Response | None]],
+    ) -> Response | None:
         try:
             connection.register_response_receiver(request)
             return await func(request)
         except Exception as error:  # pylint: disable=W0718
             logging.exception(error)
             await connection.unregister_response_receiver(request)
+            return None

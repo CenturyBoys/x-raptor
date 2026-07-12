@@ -13,6 +13,6 @@ try:
 
     from .redis import ConfigAntenna, RedisAntenna
 
-    __all__ += ["RedisAntenna", "ConfigAntenna"]
+    __all__ += ["ConfigAntenna", "RedisAntenna"]
 except ImportError:  # pragma: no cover
     pass
