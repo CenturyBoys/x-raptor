@@ -139,6 +139,19 @@ class XRaptor:
         if self._stop_event is not None:
             self._stop_event.set()
 
+    def run(self) -> None:
+        """
+        Convenience entrypoint: run serve() on uvloop when it is installed
+        (the `uvloop` extra), otherwise fall back to the stdlib asyncio loop.
+        Call this instead of asyncio.run(server.serve()).
+        """
+        try:
+            import uvloop
+        except ImportError:
+            asyncio.run(self.serve())
+        else:
+            uvloop.run(self.serve())
+
     @classmethod
     def register(cls, name: str) -> Route:
         """

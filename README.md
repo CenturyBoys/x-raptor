@@ -206,9 +206,9 @@ This extra add the redis [package](https://pypi.org/project/redis/) in version `
 How to install extra packages?
 
 ```shell
-poetry add xraptor -E redis_version
-OR
 pip install 'xraptor[redis_version]'
+# or with uv
+uv add 'xraptor[redis_version]'
 ```
 
 Redis antenna need string connection that you will configure on his antenna using the `set_config`.
@@ -221,6 +221,23 @@ import xraptor
 xraptor.antennas.RedisAntenna.set_config({"url": "redis://:@localhost:6379/0"})
 
 ...
+```
+
+#### uvloop
+
+Optional faster event loop for the asyncio server. Install the extra and use
+`XRaptor.run()` (it uses uvloop when available, otherwise falls back to asyncio):
+
+```shell
+pip install 'xraptor[uvloop]'
+```
+
+```python
+import xraptor
+
+_xraptor = xraptor.XRaptor("localhost", 8765)
+_xraptor.set_antenna(xraptor.antennas.MemoryAntenna)
+_xraptor.load_routes().run()   # uvloop if installed, else asyncio
 ```
 
 ## 🧮 Full Example

@@ -23,6 +23,7 @@ dependencies = [
 
 [project.optional-dependencies]
 redis_version = ["redis>=5.0.8,<6"]
+uvloop = ["uvloop>=0.19; sys_platform != 'win32'"]
 
 [project.urls]
 homepage = "https://github.com/CenturyBoys/x-raptor"

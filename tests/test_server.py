@@ -1,4 +1,6 @@
 import asyncio
+import sys
+import types
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -96,6 +98,36 @@ def test_serve_options_defaults_and_override():
     _s2 = xraptor.XRaptor("localhost", 0, max_size=1024, max_queue=8)
     assert _s2._serve_options["max_size"] == 1024
     assert _s2._serve_options["max_queue"] == 8
+
+
+def test_run_falls_back_to_asyncio_without_uvloop(monkeypatch):
+    _s = xraptor.XRaptor("localhost", 0)
+    captured = {}
+
+    def _fake_run(coro):
+        captured["coro"] = coro
+        coro.close()  # avoid "coroutine was never awaited"
+
+    monkeypatch.setitem(sys.modules, "uvloop", None)  # force ImportError
+    monkeypatch.setattr(asyncio, "run", _fake_run)
+    _s.run()
+    assert "coro" in captured
+
+
+def test_run_uses_uvloop_when_available(monkeypatch):
+    _s = xraptor.XRaptor("localhost", 0)
+    captured = {}
+
+    _fake_uvloop = types.ModuleType("uvloop")
+
+    def _fake_run(coro):
+        captured["coro"] = coro
+        coro.close()
+
+    _fake_uvloop.run = _fake_run
+    monkeypatch.setitem(sys.modules, "uvloop", _fake_uvloop)
+    _s.run()
+    assert "coro" in captured
 
 
 @pytest.mark.asyncio
