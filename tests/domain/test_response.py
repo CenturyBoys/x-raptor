@@ -51,8 +51,9 @@ def test_json():
     }
     _response = Response(**_r)
 
-    assert _response.json() == (
-        '{"request_id": "c99215f9-33f0-4544-88ae-50378dde70fa", "payload": '
-        '"{\\"chat_id\\": \\"5869ee0a-dfb5-4df1-96dc-b5fc97111a54\\"}", "he'
-        'ader": {}, "method": "POST"}'
-    )
+    assert json.loads(_response.json()) == {
+        "request_id": _r["request_id"],
+        "payload": _r["payload"],
+        "header": {},
+        "method": "POST",
+    }

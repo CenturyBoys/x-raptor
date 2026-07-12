@@ -1,5 +1,6 @@
-import json
 from dataclasses import dataclass
+
+import orjson
 
 from xraptor.domain.methods import MethodType
 
@@ -31,7 +32,7 @@ class Request:
         return a string data representation
         :return:
         """
-        return json.dumps(
+        return orjson.dumps(
             {
                 "request_id": self.request_id,
                 "payload": self.payload,
@@ -39,7 +40,7 @@ class Request:
                 "route": self.route,
                 "method": self.method.value,
             }
-        )
+        ).decode()
 
     @classmethod
     def from_message(cls, message: str | bytes):
@@ -50,8 +51,8 @@ class Request:
         :raises ValueError: if the message is not a well-formed request
         """
         try:
-            message_data = json.loads(message)
-        except (json.JSONDecodeError, TypeError) as error:
+            message_data = orjson.loads(message)
+        except (orjson.JSONDecodeError, TypeError) as error:
             raise ValueError(f"malformed request: {error}") from error
 
         if not isinstance(message_data, dict):

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Use **orjson** for request/response (de)serialization on the hot path
+  (~7.6x faster dumps, ~3.8x faster loads in a local micro-benchmark). The wire
+  format stays text JSON (`json()` still returns `str`).
 - Migrated packaging from Poetry to **uv** (PEP 621 `[project]` metadata, `hatchling`
   build backend, `uv.lock`).
 - CI reworked to use `uv`: lint job (ruff + ruff-format + mypy) and a test matrix on

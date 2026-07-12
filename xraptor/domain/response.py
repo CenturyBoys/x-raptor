@@ -1,5 +1,6 @@
-import json
 from dataclasses import dataclass
+
+import orjson
 
 from xraptor.domain.methods import MethodType
 
@@ -35,16 +36,16 @@ class Response:
         """
         return cls(request_id=request_id, payload=payload, header=header, method=method)
 
-    def json(self):
+    def json(self) -> str:
         """
         return a string data representation
         :return:
         """
-        return json.dumps(
+        return orjson.dumps(
             {
                 "request_id": self.request_id,
                 "payload": self.payload,
                 "header": self.header,
                 "method": self.method.name,
             }
-        )
+        ).decode()

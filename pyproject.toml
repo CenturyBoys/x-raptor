@@ -18,6 +18,7 @@ dependencies = [
     "witch-doctor>=1.2.0,<2",
     "python-decouple>=3.8,<4",
     "meeseeks-singleton>=0.4.4,<0.5",
+    "orjson>=3.11.9",
 ]
 
 [project.optional-dependencies]
