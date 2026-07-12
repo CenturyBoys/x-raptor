@@ -90,6 +90,14 @@ def test_stop_without_serve_is_noop():
     _s.stop()  # no serve() running yet -> must not raise
 
 
+def test_serve_options_defaults_and_override():
+    _s = xraptor.XRaptor("localhost", 0)
+    assert _s._serve_options["max_size"] == 2**20
+    _s2 = xraptor.XRaptor("localhost", 0, max_size=1024, max_queue=8)
+    assert _s2._serve_options["max_size"] == 1024
+    assert _s2._serve_options["max_queue"] == 8
+
+
 @pytest.mark.asyncio
 async def test_serve_graceful_stop():
     _s = xraptor.XRaptor("localhost", 0)  # port 0 -> OS picks a free port

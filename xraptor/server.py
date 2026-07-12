@@ -34,11 +34,32 @@ class XRaptor:
     _antenna_cls: ClassVar[type[Antenna] | None] = None
     _middlewares: ClassVar[list[MiddlewareConfig]] = []
 
-    def __init__(self, ip_address: str, port: int):
+    def __init__(
+        self,
+        ip_address: str,
+        port: int,
+        *,
+        max_size: int | None = 2**20,
+        max_queue: int | None = 32,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
+    ):
+        """
+        :param max_size: max inbound message size in bytes (DoS guard; None disables)
+        :param max_queue: max buffered inbound messages per connection (backpressure)
+        :param ping_interval: keepalive ping interval in seconds (None disables)
+        :param ping_timeout: keepalive ping timeout in seconds
+        """
         self._ip = ip_address
         self._port = port
         self._server = None
         self._stop_event: asyncio.Event | None = None
+        self._serve_options: dict = {
+            "max_size": max_size,
+            "max_queue": max_queue,
+            "ping_interval": ping_interval,
+            "ping_timeout": ping_timeout,
+        }
 
     @classmethod
     def set_antenna(cls, antenna: type[Antenna]):
@@ -97,7 +118,9 @@ class XRaptor:
         :return:
         """
         self._stop_event = asyncio.Event()
-        async with serve(self._watch, self._ip, self._port) as server:
+        async with serve(
+            self._watch, self._ip, self._port, **self._serve_options
+        ) as server:
             self._server = server
             self._install_signal_handlers()
             await self._stop_event.wait()
@@ -162,7 +185,12 @@ class XRaptor:
                         f"Middleware priority {priority} already registered"
                     )
 
-            compiled_pattern = re.compile(pattern) if pattern else None
+            try:
+                compiled_pattern = re.compile(pattern) if pattern else None
+            except re.error as error:
+                raise ValueError(
+                    f"invalid middleware pattern {pattern!r}: {error}"
+                ) from error
             cls._middlewares.append(
                 MiddlewareConfig(
                     priority=priority,
@@ -188,9 +216,11 @@ class XRaptor:
                 continue
             result = await mw.func(request, connection)
             if result is not None:
-                assert isinstance(
-                    result, Response
-                ), f"Middleware must return Response or None, got {type(result)}"
+                if not isinstance(result, Response):
+                    raise TypeError(
+                        f"Middleware must return Response or None, "
+                        f"got {type(result)}"
+                    )
                 return result
         return None
 
@@ -222,8 +252,9 @@ class XRaptor:
     async def _handle_request(message: str | bytes, connection: Connection):
         try:
             request = Request.from_message(message)
-        except Exception as error:  # pylint: disable=W0718
-            logging.exception(error)
+        except ValueError as error:
+            # client-side malformed input — drop it without a server-side traceback
+            logging.warning("dropping malformed request: %s", error)
             return
 
         try:

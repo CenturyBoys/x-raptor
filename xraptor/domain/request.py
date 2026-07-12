@@ -47,14 +47,29 @@ class Request:
         cast string message to a valid Request object instance
         :param message: json like string
         :return: Request instance
+        :raises ValueError: if the message is not a well-formed request
         """
+        try:
+            message_data = json.loads(message)
+        except (json.JSONDecodeError, TypeError) as error:
+            raise ValueError(f"malformed request: {error}") from error
 
-        message_data = json.loads(message)
+        if not isinstance(message_data, dict):
+            raise ValueError("request must be a JSON object")
+
+        for field in ("request_id", "payload", "header", "route", "method"):
+            if field not in message_data:
+                raise ValueError(f"missing request field: {field!r}")
+
+        try:
+            method = MethodType[str(message_data["method"]).upper()]
+        except KeyError as error:
+            raise ValueError(f"unknown method: {message_data['method']!r}") from error
 
         return cls(
             request_id=message_data["request_id"],
             payload=message_data["payload"],
             header=message_data["header"],
             route=message_data["route"],
-            method=MethodType[message_data["method"].upper()],
+            method=method,
         )

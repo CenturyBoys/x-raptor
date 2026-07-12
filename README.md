@@ -55,6 +55,24 @@ _xraptor.set_antenna(xraptor.antennas.RedisAntenna)
 asyncio.run(_xraptor.load_routes().serve())
 ```
 
+`serve()` runs until `stop()` is called or a `SIGTERM`/`SIGINT` is received, then
+shuts down gracefully. Connection limits can be tuned on the constructor:
+
+```python
+_xraptor = xraptor.XRaptor(
+    "localhost",
+    8765,
+    max_size=2**20,      # max inbound payload in bytes (DoS guard)
+    max_queue=32,        # per-connection backpressure
+    ping_interval=20,    # keepalive; detects half-open connections
+    ping_timeout=20,
+)
+```
+
+> **Auth & rate limiting** are not built in — implement them as
+> [middleware](#-middleware) (the chain runs before every handler and can
+> short-circuit a request).
+
 ### 🔗 Middleware
 
 X-raptor supports middleware functions that run before route handlers. Middlewares can inspect/modify requests, short-circuit responses, or perform cross-cutting concerns like authentication and logging.

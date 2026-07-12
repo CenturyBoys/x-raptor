@@ -43,6 +43,35 @@ def test_from_message():
     assert isinstance(_request, Request)
 
 
+def test_from_message_invalid_json():
+    with pytest.raises(ValueError, match="malformed request"):
+        Request.from_message("{not json")
+
+
+def test_from_message_not_an_object():
+    with pytest.raises(ValueError, match="must be a JSON object"):
+        Request.from_message("[1, 2, 3]")
+
+
+def test_from_message_missing_field():
+    with pytest.raises(ValueError, match="missing request field"):
+        Request.from_message('{"request_id": "x", "payload": "", "header": {}}')
+
+
+def test_from_message_unknown_method():
+    _msg = json.dumps(
+        {
+            "request_id": "x",
+            "payload": "",
+            "header": {},
+            "route": "/r",
+            "method": "TELEPORT",
+        }
+    )
+    with pytest.raises(ValueError, match="unknown method"):
+        Request.from_message(_msg)
+
+
 def test_json():
     _r = {
         "request_id": "c99215f9-33f0-4544-88ae-50378dde70fa",

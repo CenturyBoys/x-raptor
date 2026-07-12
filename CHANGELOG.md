@@ -20,8 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Graceful shutdown: `serve()` now runs until `stop()` is called or SIGTERM/SIGINT
   is received, then closes the server and its connections cleanly (replaces the
   busy `while True: sleep` loop).
+- Configurable connection limits on `XRaptor(...)`: `max_size` (inbound payload cap,
+  DoS guard), `max_queue` (per-connection backpressure), `ping_interval`/`ping_timeout`
+  (keepalive), forwarded to the websockets server with safe defaults.
 
 ### Fixed
+- `Request.from_message` now raises a clear `ValueError` on malformed input
+  (bad JSON, non-object, missing fields, unknown method) instead of leaking
+  `KeyError`/`JSONDecodeError`; the server drops such messages at warning level.
+- Middleware regex patterns are validated at registration (clear `ValueError`),
+  and the middleware return-type check raises `TypeError` instead of an assert.
 - Connection listener tasks no longer spin forever when the peer is gone (break on
   `ConnectionClosed`) and are wired to a done-callback so unexpected failures are
   logged instead of swallowed.
@@ -50,7 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known limitations (deferred)
 - `Broadcast.remove_member`/`_close` cancel tasks fire-and-forget (kept sync to avoid
   breaking the public API); awaiting cancellation would require an async API.
-- Payload size limits, request schema validation and rate limiting — Phase 4.
+- No built-in rate limiting: implement it as a middleware (the middleware chain is the
+  intended hook for auth and rate limiting).
+- No built-in metrics/health endpoint yet (observability).
 
 ### Notes
 - Manual one-time setup still required on the hosting side: create the GitHub
