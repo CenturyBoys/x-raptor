@@ -32,7 +32,7 @@ jobs:
         run: uv build
 
       - name: Smoke-test wheel
-        run: uv run --isolated --no-project --with dist/*.whl -c "import xraptor; print(xraptor.__name__)"
+        run: uv run --isolated --no-project --with dist/*.whl python -c "import xraptor; print(xraptor.__name__)"
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
