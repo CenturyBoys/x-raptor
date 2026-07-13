@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-12
+
 ### Changed
 - Use **orjson** for request/response (de)serialization on the hot path
   (~7.6x faster dumps, ~3.8x faster loads in a local micro-benchmark). The wire

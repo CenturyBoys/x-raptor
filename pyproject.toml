@@ -1,6 +1,6 @@
 [project]
 name = "xraptor"
-version = "0.3.7"
+version = "0.4.0"
 description = "Fast as websocket easy as http"
 authors = [{ name = "Marco Sievers de Almeida", email = "im.ximit@gmail.com" }]
 requires-python = ">=3.11,<4"
