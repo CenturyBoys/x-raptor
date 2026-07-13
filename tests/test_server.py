@@ -1,3 +1,6 @@
+import asyncio
+import sys
+import types
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -14,7 +17,7 @@ def test_set_antenna_wrong_type():
     class Stub:
         pass
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(TypeError):
         xraptor.XRaptor.set_antenna(Stub)
 
 
@@ -74,3 +77,64 @@ def test_route_matcher():
     _s.load_routes()
     _fn = _s.route_matcher(MethodType.GET, "/test")
     assert _fn
+
+
+def test_register_no_duplicates():
+    name = f"/{uuid4()}"
+    _r1 = xraptor.XRaptor.register(name)
+    _r2 = xraptor.XRaptor.register(name)
+    assert _r1 is _r2
+    assert xraptor.XRaptor._routes.count(_r1) == 1
+
+
+def test_stop_without_serve_is_noop():
+    _s = xraptor.XRaptor("localhost", 0)
+    _s.stop()  # no serve() running yet -> must not raise
+
+
+def test_serve_options_defaults_and_override():
+    _s = xraptor.XRaptor("localhost", 0)
+    assert _s._serve_options["max_size"] == 2**20
+    _s2 = xraptor.XRaptor("localhost", 0, max_size=1024, max_queue=8)
+    assert _s2._serve_options["max_size"] == 1024
+    assert _s2._serve_options["max_queue"] == 8
+
+
+def test_run_falls_back_to_asyncio_without_uvloop(monkeypatch):
+    _s = xraptor.XRaptor("localhost", 0)
+    captured = {}
+
+    def _fake_run(coro):
+        captured["coro"] = coro
+        coro.close()  # avoid "coroutine was never awaited"
+
+    monkeypatch.setitem(sys.modules, "uvloop", None)  # force ImportError
+    monkeypatch.setattr(asyncio, "run", _fake_run)
+    _s.run()
+    assert "coro" in captured
+
+
+def test_run_uses_uvloop_when_available(monkeypatch):
+    _s = xraptor.XRaptor("localhost", 0)
+    captured = {}
+
+    _fake_uvloop = types.ModuleType("uvloop")
+
+    def _fake_run(coro):
+        captured["coro"] = coro
+        coro.close()
+
+    _fake_uvloop.run = _fake_run
+    monkeypatch.setitem(sys.modules, "uvloop", _fake_uvloop)
+    _s.run()
+    assert "coro" in captured
+
+
+@pytest.mark.asyncio
+async def test_serve_graceful_stop():
+    _s = xraptor.XRaptor("localhost", 0)  # port 0 -> OS picks a free port
+    _task = asyncio.ensure_future(_s.serve())
+    await asyncio.sleep(0.05)  # let the server bind
+    _s.stop()
+    # serve() must return promptly once stop() is signaled.
+    await asyncio.wait_for(_task, timeout=2)

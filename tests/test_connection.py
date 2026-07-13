@@ -1,4 +1,6 @@
 import json
+import logging
+from unittest.mock import MagicMock
 from uuid import uuid4
 
 import pytest
@@ -52,3 +54,20 @@ async def test_unregister_all():
     assert _r.request_id in _c.response_receiver
     await _c._unregister_all()
     assert _r.request_id not in _c.response_receiver
+
+
+def test_on_listener_done_reports_error(caplog):
+    _task = MagicMock()
+    _task.cancelled.return_value = False
+    _task.exception.return_value = RuntimeError("boom")
+    with caplog.at_level(logging.ERROR):
+        Connection._on_listener_done(_task)
+    assert "listener task failed" in caplog.text
+
+
+def test_on_listener_done_ignores_cancelled(caplog):
+    _task = MagicMock()
+    _task.cancelled.return_value = True
+    with caplog.at_level(logging.ERROR):
+        Connection._on_listener_done(_task)
+    assert caplog.text == ""

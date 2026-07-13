@@ -1,15 +1,22 @@
 repos:
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.8.4
+  rev: v0.8.6
   hooks:
     - id: ruff
       args: [ --fix ]
     - id: ruff-format
 - repo: local
   hooks:
+    - id: mypy
+      name: mypy
+      entry: uv run mypy xraptor/
+      language: system
+      types: [ python ]
+      pass_filenames: false
+      always_run: false
     - id: pytest
       name: pytest
-      entry: pytest
+      entry: uv run pytest
       language: system
       types: [ python ]
       pass_filenames: false

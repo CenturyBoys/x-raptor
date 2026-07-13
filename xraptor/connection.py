@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import witch_doctor
 from websockets import WebSocketServerProtocol
+from websockets.exceptions import ConnectionClosed
 from websockets.frames import CloseCode
 
 from xraptor.core.interfaces import Antenna
@@ -70,10 +71,24 @@ class Connection:
                         method=request.method,
                     )
                     await self.ws_server.send(_response.json())
+                except ConnectionClosed:
+                    # client gone; stop delivering instead of spinning forever
+                    break
                 except Exception as error:  # pylint: disable=W0718
                     logging.exception(error)
 
-        return antenna, asyncio.create_task(listener())
+        task = asyncio.create_task(listener())
+        task.add_done_callback(self._on_listener_done)
+        return antenna, task
+
+    @staticmethod
+    def _on_listener_done(task: asyncio.Task) -> None:
+        # Surface unexpected listener deaths instead of failing silently.
+        if task.cancelled():
+            return
+        error = task.exception()
+        if error is not None:
+            logging.error("antenna listener task failed: %r", error)
 
     async def close(self, close_code: CloseCode = CloseCode.NORMAL_CLOSURE):
         await self._unregister_all()

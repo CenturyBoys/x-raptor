@@ -1,36 +1,85 @@
-[tool.poetry]
+[project]
 name = "xraptor"
-version = "0.3.7"
+version = "0.4.0"
 description = "Fast as websocket easy as http"
-authors = ["Marco Sievers de Almeida <im.ximit@gmail.com>"]
+authors = [{ name = "Marco Sievers de Almeida", email = "im.ximit@gmail.com" }]
+requires-python = ">=3.11,<4"
 readme = "README.md"
-packages = [
-    { include = "xraptor"},
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = [
+    "websockets>=12.0,<13",
+    "python-ulid>=2.7.0,<3",
+    "witch-doctor>=1.2.0,<2",
+    "python-decouple>=3.8,<4",
+    "meeseeks-singleton>=0.4.4,<0.5",
+    "orjson>=3.11.9",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-websockets = "^12.0"
-python-ulid = "^2.7.0"
-witch-doctor = "^1.2.0"
-python-decouple = "^3.8"
-redis = { version = "^5.0.8", optional = true}
-meeseeks-singleton = "^0.4.4"
+[project.optional-dependencies]
+redis_version = ["redis>=5.0.8,<6"]
+uvloop = ["uvloop>=0.19; sys_platform != 'win32'"]
+nats = [
+    "nats-py>=2.6",
+]
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.2"
-pytest-asyncio = "^0.23.8"
-ruff = "^0.8.0"
-pre-commit = "^3.5.0"
-
-[tool.poetry.extras]
-redis_version = ["redis"]
-
-[tool.poetry.urls]
+[project.urls]
 homepage = "https://github.com/CenturyBoys/x-raptor"
 repository = "https://github.com/CenturyBoys/x-raptor"
 documentation = "https://github.com/CenturyBoys/x-raptor"
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8.0,<0.9",
+    "pre-commit>=3.5.0,<4",
+    "mypy>=2.2.0",
+    "pytest-cov>=7.1.0",
+    "hypothesis>=6.100",
+]
+
+[tool.uv]
+default-groups = "all"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I isort, UP pyupgrade, B bugbear,
+# SIM simplify, C4 comprehensions, ASYNC (crítico p/ código asyncio), RUF ruff-specific
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "C4", "ASYNC", "RUF"]
+ignore = ["E501"]  # comprimento de linha tratado pelo formatter
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B", "SIM", "ARG"]
+"loadtest/*" = ["ASYNC", "SIM", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true  # meeseeks / witch_doctor não têm stubs
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=xraptor --cov-report=term-missing --cov-report=xml"
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.hatch.build.targets.sdist]
+include = ["xraptor"]
+
+[tool.hatch.build.targets.wheel]
+include = ["xraptor"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+

@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import AsyncIterator, Awaitable
+from collections.abc import AsyncIterator
 
 
 class Antenna(ABC):
     @abstractmethod
-    async def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
+    def subscribe(self, antenna_id: str) -> AsyncIterator[str]:
         """
         async generator that will yield message from the key's channel
         :param antenna_id: pubsub channel
@@ -12,7 +12,7 @@ class Antenna(ABC):
         """
 
     @abstractmethod
-    async def stop_listening(self):
+    async def stop_listening(self) -> None:
         """
         stop listening messages
         :param antenna_id: pubsub channel
@@ -20,7 +20,7 @@ class Antenna(ABC):
         """
 
     @abstractmethod
-    async def post(self, antenna_id: str, message: str) -> Awaitable:
+    async def post(self, antenna_id: str, message: str) -> None:
         """
         async function that will publish a message to a key's channel
         :param antenna_id: pubsub channel
@@ -29,7 +29,7 @@ class Antenna(ABC):
         """
 
     @abstractmethod
-    async def is_alive(self, antenna_id: str) -> Awaitable[bool]:
+    async def is_alive(self, antenna_id: str) -> bool:
         """
         verify that antenna_id still alive
         :param antenna_id:
@@ -38,7 +38,7 @@ class Antenna(ABC):
 
     @classmethod
     @abstractmethod
-    def set_config(cls, config: dict):
+    def set_config(cls, config: dict) -> None:
         """
         set config map for this antenna
         :param config:

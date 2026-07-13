@@ -1,5 +1,6 @@
-import json
 from dataclasses import dataclass
+
+import orjson
 
 from xraptor.domain.methods import MethodType
 
@@ -13,20 +14,25 @@ class Request:
     method: MethodType
 
     def __post_init__(self):
-        assert isinstance(self.request_id, str), f"request_id is not of type {str}"
-        assert isinstance(self.payload, str), f"payload is not of type {str}"
-        assert isinstance(self.header, dict), f"header is not of type {dict}"
-        assert isinstance(self.route, str), f"route is not of type {str}"
-        assert isinstance(
-            self.method, MethodType
-        ), f"method is not of type {MethodType}"
+        # Explicit raises (not asserts): asserts are stripped under `python -O`,
+        # which would silently disable input validation in production.
+        if not isinstance(self.request_id, str):
+            raise TypeError(f"request_id is not of type {str}")
+        if not isinstance(self.payload, str):
+            raise TypeError(f"payload is not of type {str}")
+        if not isinstance(self.header, dict):
+            raise TypeError(f"header is not of type {dict}")
+        if not isinstance(self.route, str):
+            raise TypeError(f"route is not of type {str}")
+        if not isinstance(self.method, MethodType):
+            raise TypeError(f"method is not of type {MethodType}")
 
     def json(self) -> str:
         """
         return a string data representation
         :return:
         """
-        return json.dumps(
+        return orjson.dumps(
             {
                 "request_id": self.request_id,
                 "payload": self.payload,
@@ -34,7 +40,7 @@ class Request:
                 "route": self.route,
                 "method": self.method.value,
             }
-        )
+        ).decode()
 
     @classmethod
     def from_message(cls, message: str | bytes):
@@ -42,14 +48,34 @@ class Request:
         cast string message to a valid Request object instance
         :param message: json like string
         :return: Request instance
+        :raises ValueError: if the message is not a well-formed request
         """
+        try:
+            message_data = orjson.loads(message)
+        except (orjson.JSONDecodeError, TypeError) as error:
+            raise ValueError(f"malformed request: {error}") from error
 
-        message_data = json.loads(message)
+        if not isinstance(message_data, dict):
+            raise ValueError("request must be a JSON object")
 
-        return cls(
-            request_id=message_data["request_id"],
-            payload=message_data["payload"],
-            header=message_data["header"],
-            route=message_data["route"],
-            method=MethodType[message_data["method"].upper()],
-        )
+        for field in ("request_id", "payload", "header", "route", "method"):
+            if field not in message_data:
+                raise ValueError(f"missing request field: {field!r}")
+
+        try:
+            method = MethodType[str(message_data["method"]).upper()]
+        except KeyError as error:
+            raise ValueError(f"unknown method: {message_data['method']!r}") from error
+
+        try:
+            return cls(
+                request_id=message_data["request_id"],
+                payload=message_data["payload"],
+                header=message_data["header"],
+                route=message_data["route"],
+                method=method,
+            )
+        except TypeError as error:
+            # wrong field types (e.g. numeric request_id) -> uniform ValueError so
+            # the server drops the message instead of leaking TypeError upward.
+            raise ValueError(f"invalid request field type: {error}") from error

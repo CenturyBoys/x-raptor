@@ -216,5 +216,13 @@ async def test_middleware_invalid_return_type():
     )
     connection = MagicMock(spec=Connection)
 
-    with pytest.raises(AssertionError, match="Middleware must return Response or None"):
+    with pytest.raises(TypeError, match="Middleware must return Response or None"):
         await xraptor.XRaptor._run_middlewares(request, connection)
+
+
+def test_middleware_invalid_pattern_raises():
+    with pytest.raises(ValueError, match="invalid middleware pattern"):
+
+        @xraptor.XRaptor.middleware(priority=1, pattern="[unclosed")
+        async def bad_pattern_middleware(request, connection):
+            return None

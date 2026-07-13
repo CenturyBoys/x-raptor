@@ -1,4 +1,4 @@
-from typing import Callable, Awaitable
+from collections.abc import Awaitable, Callable
 
 import meeseeks
 
@@ -9,7 +9,7 @@ from xraptor.domain.response import Response
 
 @meeseeks.OnlyOne(by_args_hash=True)
 class Route:
-    __slots__ = ["name", "_map"]
+    __slots__ = ["_map", "name"]
 
     def __init__(self, name: str):
         self.name = name
